@@ -1,7 +1,4 @@
-# fremdes Dokument ohne Lizenz, holt protokoll.py
-vorlage.pdf
-
-# erzeugte Protokolle
+# erzeugte Niederschriften und fremde Vorlagen
 *.pdf
 
 # eigene Listen und Zwischenstände gehören nicht ins Repository

@@ -1,7 +1,7 @@
 # GEV-Wahlhelfer
 
 Wahlen der Gesamtelternvertretung an einer Berliner Schule: Kandidaturen und
-Ergebnisse für den Beamer, danach das ausgefüllte amtliche Wahlprotokoll.
+Ergebnisse an der Wand, danach die Wahlniederschrift.
 
 `index.html` doppelklicken. Kein Server, keine Installation, kein Netz.
 
@@ -10,14 +10,22 @@ Ergebnisse für den Beamer, danach das ausgefüllte amtliche Wahlprotokoll.
 1. Einrichtung: Kopfdaten, Fachkonferenzen, Liste laden
 2. Wahlgang wählen, Kandidaturen aufnehmen, Stimmen eintragen
 3. Stand sichern
-4. Protokoll erzeugen:
+4. Niederschrift: Ansicht öffnen, drucken, im Druckdialog „Als PDF speichern“ wählen
+   und die Kopf- und Fußzeilen des Browsers abschalten
 
-```sh
-sudo apt install python3-reportlab python3-pypdf   # einmalig
-python3 protokoll.py wahlstand.json
-```
+## Liste und Stand
 
-## Liste
+Zwei Dateien, zwei Zwecke:
+
+* **Vertreterliste**, eine CSV — der Namensvorrat, aus dem die Kandidaturen kommen.
+  Laden lässt Kopfdaten, Kandidaturen und Stimmen unberührt.
+* **Stand**, eine JSON — die ganze Sitzung. Laden ersetzt sie vollständig; stehen
+  schon Stimmen, wird vorher gefragt.
+
+Ein Stand enthält den Namensvorrat mit, die Liste ist dann nicht mehr nötig. Für das
+nächste Schuljahr nimmt man die Liste, nicht den Stand.
+
+### Vertreterliste
 
 CSV, UTF-8. Pflicht ist nur `Name`.
 
@@ -27,18 +35,14 @@ Klasse;Vorname;Name;E-Mail
 11;Olga;Lerchenfeld;olga.lerchenfeld@example.org
 ```
 
-Eine Zeile mit `Typ` = `Fachkonferenz` nimmt zusätzlich Fächer auf.
 Beispiele liegen in `beispiel/`.
 
-## Vorlage
+Wer zwei Klassen vertritt, darf in zwei Zeilen stehen: Bei gleichem Namen und gleicher
+Adresse werden sie zu einer Person mit beiden Klassen zusammengefasst. Gleiche Namen
+mit verschiedenen Adressen bleiben getrennt — das sind Namensvettern.
 
-`vorlage.pdf` nennt keine Lizenz und liegt deshalb nicht im Repository. `protokoll.py`
-holt sie beim ersten Lauf von den
-[Berliner Elternfortbildner*innen](https://www.berliner-elternvideos.de/elternfortbildner/)
-und prüft, ob die Feldkoordinaten noch passen.
-
-Die Koordinaten in `pdfkarte.json` sind an der Fassung vom 21.08.2026 gemessen,
-13 Seiten, SHA-256 `8719bef2aa674a3a6b404b3310a6637bc9544ee4771df7535d05152f8b972227`.
+Ohne Adresse ist beides nicht zu unterscheiden; solche Zeilen bleiben getrennt, und die
+Seite sagt es beim Laden. Vollständig gleiche Zeilen werden als Erfassungsfehler gemeldet.
 
 ## Lizenz
 
