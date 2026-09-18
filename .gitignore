@@ -1,0 +1,11 @@
+# fremdes Dokument ohne Lizenz, holt protokoll.py
+vorlage.pdf
+
+# erzeugte Protokolle
+*.pdf
+
+# eigene Listen und Zwischenstände gehören nicht ins Repository
+wahlliste*.csv
+wahlstand*.json
+!beispiel/wahlliste-muster.csv
+!beispiel/wahlstand-muster.json

@@ -1,0 +1,570 @@
+{
+ "kopf": {
+  "schule": "Muster-Gymnasium",
+  "datum": "21.09.2026",
+  "wahlleitung": "Eva Morgentau",
+  "anwesendW": "16",
+  "anwesendS": "17",
+  "teilkonferenz": "Jahrgangsstufe 9"
+ },
+ "faecher": [
+  "Ma",
+  "De",
+  "En",
+  "Bio",
+  "Ge",
+  "Ku",
+  "Sp",
+  "Mu"
+ ],
+ "mitglieder": [],
+ "wahlgaenge": {
+  "vorsitz": {
+   "kandidaten": [
+    {
+     "name": "Annika Sonnenberg",
+     "mail": "annika.sonnenberg@example.org",
+     "klasse": "5.1",
+     "stimmen": "12",
+     "nurStellv": false
+    },
+    {
+     "name": "Bernd Kastanienbaum",
+     "mail": "bernd.kastanienbaum@example.org",
+     "klasse": "5.1",
+     "stimmen": "5",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "17",
+   "sitze": null
+  },
+  "stellv_vorsitz": {
+   "kandidaten": [
+    {
+     "name": "Cordula Weidenbach",
+     "mail": "cordula.weidenbach@example.org",
+     "klasse": "6.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Farid Blumenthal",
+     "mail": "farid.blumenthal@example.org",
+     "klasse": "7.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Grete Hollerbusch",
+     "mail": "grete.hollerbusch@example.org",
+     "klasse": "7.2",
+     "stimmen": "15",
+     "nurStellv": false
+    },
+    {
+     "name": "Dimitrios Falkenhain",
+     "mail": "dimitrios.falkenhain@example.org",
+     "klasse": "6.1",
+     "stimmen": "9",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "vorstand_weitere": {
+   "kandidaten": [
+    {
+     "name": "Hendrik Silbermond",
+     "mail": "hendrik.silbermond@example.org",
+     "klasse": "7.2",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Rosa Tannenbusch",
+     "mail": "rosa.tannenbusch@example.org",
+     "klasse": "12",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "sk": {
+   "kandidaten": [
+    {
+     "name": "Annika Sonnenberg",
+     "mail": "annika.sonnenberg@example.org",
+     "klasse": "5.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Grete Hollerbusch",
+     "mail": "grete.hollerbusch@example.org",
+     "klasse": "7.2",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Ilka Rabenstein",
+     "mail": "ilka.rabenstein@example.org",
+     "klasse": "8.1",
+     "stimmen": "16",
+     "nurStellv": false
+    },
+    {
+     "name": "Katrin Nebelhorn",
+     "mail": "katrin.nebelhorn@example.org",
+     "klasse": "9.1",
+     "stimmen": "14",
+     "nurStellv": false
+    },
+    {
+     "name": "Nuri Sandkorn",
+     "mail": "nuri.sandkorn@example.org",
+     "klasse": "10.1",
+     "stimmen": "11",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "sk_stellv": {
+   "kandidaten": [
+    {
+     "name": "Miriam Ahornblatt",
+     "mail": "miriam.ahornblatt@example.org",
+     "klasse": "10.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Piet Wolkenstein",
+     "mail": "piet.wolkenstein@example.org",
+     "klasse": "11",
+     "stimmen": "15",
+     "nurStellv": false
+    },
+    {
+     "name": "Quirin Haselnuss",
+     "mail": "quirin.haselnuss@example.org",
+     "klasse": "12",
+     "stimmen": "13",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "bea": {
+   "kandidaten": [
+    {
+     "name": "Jonas Wiesengrund",
+     "mail": "jonas.wiesengrund@example.org",
+     "klasse": "8.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Olga Lerchenfeld",
+     "mail": "olga.lerchenfeld@example.org",
+     "klasse": "11",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "bea_stellv": {
+   "kandidaten": [
+    {
+     "name": "Lennart Distelfink",
+     "mail": "lennart.distelfink@example.org",
+     "klasse": "9.1",
+     "stimmen": "16",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "gk": {
+   "kandidaten": [
+    {
+     "name": "Cordula Weidenbach",
+     "mail": "cordula.weidenbach@example.org",
+     "klasse": "6.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Ilka Rabenstein",
+     "mail": "ilka.rabenstein@example.org",
+     "klasse": "8.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "gk_stellv": {
+   "kandidaten": [
+    {
+     "name": "Bernd Kastanienbaum",
+     "mail": "bernd.kastanienbaum@example.org",
+     "klasse": "5.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Katrin Nebelhorn",
+     "mail": "katrin.nebelhorn@example.org",
+     "klasse": "9.1",
+     "stimmen": "16",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "gsv": {
+   "kandidaten": [
+    {
+     "name": "Miriam Ahornblatt",
+     "mail": "miriam.ahornblatt@example.org",
+     "klasse": "10.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Farid Blumenthal",
+     "mail": "farid.blumenthal@example.org",
+     "klasse": "7.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "gsv_stellv": {
+   "kandidaten": [
+    {
+     "name": "Nuri Sandkorn",
+     "mail": "nuri.sandkorn@example.org",
+     "klasse": "10.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "tk": {
+   "kandidaten": [
+    {
+     "name": "Katrin Nebelhorn",
+     "mail": "katrin.nebelhorn@example.org",
+     "klasse": "9.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "tk_stellv": {
+   "kandidaten": [
+    {
+     "name": "Lennart Distelfink",
+     "mail": "lennart.distelfink@example.org",
+     "klasse": "9.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Jonas Wiesengrund",
+     "mail": "jonas.wiesengrund@example.org",
+     "klasse": "8.1",
+     "stimmen": "16",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fk::Ma": {
+   "kandidaten": [
+    {
+     "name": "Quirin Haselnuss",
+     "mail": "quirin.haselnuss@example.org",
+     "klasse": "12",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Piet Wolkenstein",
+     "mail": "piet.wolkenstein@example.org",
+     "klasse": "11",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fks::Ma": {
+   "kandidaten": [
+    {
+     "name": "Olga Lerchenfeld",
+     "mail": "olga.lerchenfeld@example.org",
+     "klasse": "11",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fk::De": {
+   "kandidaten": [
+    {
+     "name": "Rosa Tannenbusch",
+     "mail": "rosa.tannenbusch@example.org",
+     "klasse": "12",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Grete Hollerbusch",
+     "mail": "grete.hollerbusch@example.org",
+     "klasse": "7.2",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fks::De": {
+   "kandidaten": [
+    {
+     "name": "Hendrik Silbermond",
+     "mail": "hendrik.silbermond@example.org",
+     "klasse": "7.2",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fk::En": {
+   "kandidaten": [
+    {
+     "name": "Cordula Weidenbach",
+     "mail": "cordula.weidenbach@example.org",
+     "klasse": "6.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Annika Sonnenberg",
+     "mail": "annika.sonnenberg@example.org",
+     "klasse": "5.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fks::En": {
+   "kandidaten": [
+    {
+     "name": "Dimitrios Falkenhain",
+     "mail": "dimitrios.falkenhain@example.org",
+     "klasse": "6.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fk::Bio": {
+   "kandidaten": [
+    {
+     "name": "Ilka Rabenstein",
+     "mail": "ilka.rabenstein@example.org",
+     "klasse": "8.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Jonas Wiesengrund",
+     "mail": "jonas.wiesengrund@example.org",
+     "klasse": "8.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fks::Bio": {
+   "kandidaten": [
+    {
+     "name": "Katrin Nebelhorn",
+     "mail": "katrin.nebelhorn@example.org",
+     "klasse": "9.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fk::Ge": {
+   "kandidaten": [
+    {
+     "name": "Lennart Distelfink",
+     "mail": "lennart.distelfink@example.org",
+     "klasse": "9.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Miriam Ahornblatt",
+     "mail": "miriam.ahornblatt@example.org",
+     "klasse": "10.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fks::Ge": {
+   "kandidaten": [
+    {
+     "name": "Nuri Sandkorn",
+     "mail": "nuri.sandkorn@example.org",
+     "klasse": "10.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fk::Ku": {
+   "kandidaten": [
+    {
+     "name": "Hendrik Silbermond",
+     "mail": "hendrik.silbermond@example.org",
+     "klasse": "7.2",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Rosa Tannenbusch",
+     "mail": "rosa.tannenbusch@example.org",
+     "klasse": "12",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fks::Ku": {
+   "kandidaten": [
+    {
+     "name": "Quirin Haselnuss",
+     "mail": "quirin.haselnuss@example.org",
+     "klasse": "12",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fk::Sp": {
+   "kandidaten": [
+    {
+     "name": "Dimitrios Falkenhain",
+     "mail": "dimitrios.falkenhain@example.org",
+     "klasse": "6.1",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Bernd Kastanienbaum",
+     "mail": "bernd.kastanienbaum@example.org",
+     "klasse": "5.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fks::Sp": {
+   "kandidaten": [
+    {
+     "name": "Annika Sonnenberg",
+     "mail": "annika.sonnenberg@example.org",
+     "klasse": "5.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fk::Mu": {
+   "kandidaten": [
+    {
+     "name": "Olga Lerchenfeld",
+     "mail": "olga.lerchenfeld@example.org",
+     "klasse": "11",
+     "stimmen": "17",
+     "nurStellv": false
+    },
+    {
+     "name": "Piet Wolkenstein",
+     "mail": "piet.wolkenstein@example.org",
+     "klasse": "11",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  },
+  "fks::Mu": {
+   "kandidaten": [
+    {
+     "name": "Farid Blumenthal",
+     "mail": "farid.blumenthal@example.org",
+     "klasse": "7.1",
+     "stimmen": "17",
+     "nurStellv": false
+    }
+   ],
+   "abgegeben": "",
+   "sitze": null
+  }
+ },
+ "aktiv": "vorstand",
+ "listeName": "wahlliste-muster.csv"
+}
