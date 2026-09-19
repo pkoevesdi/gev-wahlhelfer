@@ -173,7 +173,8 @@
   .prot .pjahr{font-size:12.5px; color:#5C6270; margin-bottom:8px;}
   .prot h2{font-size:16px; margin:0 0 2px;}
   .prot .psatz + h2{margin-top:16px;}
-  .prot h3{font-size:13px; font-weight:600; margin:14px 0 5px; font-family:var(--body);}
+  .prot h3{font-size:14px; font-weight:700; margin:16px 0 4px; font-family:var(--body);}
+  .prot h4{font-size:12.5px; font-weight:600; margin:9px 0 3px; font-family:var(--body); color:#5C6270;}
   .prot .pzeile{display:flex; gap:10px; font-size:13px; padding:3px 0; border-bottom:1px solid #DFE1E7;}
   .prot .pzeile b{font-weight:600; min-width:46mm; flex:none;}
   .prot .abschnitt > .pzeile:first-child{margin-top:16px;}
@@ -182,7 +183,7 @@
   .prot .pmeta b{color:#16181D; font-weight:600;}
   .prot table{width:100%; border-collapse:collapse; font-size:13px; margin-top:3px;}
   .prot thead{display:table-header-group;}
-  .prot h3{break-after:avoid; page-break-after:avoid;}
+  .prot h3, .prot h4{break-after:avoid; page-break-after:avoid;}
   .prot td.f{width:26mm;}
   .prot th, .prot td{border:1px solid #9AA0AC; padding:3px 6px; text-align:left; vertical-align:top;}
   .prot th{background:#EDEFF3; font-weight:600; font-size:12px;}
@@ -193,7 +194,11 @@
   .prot .unters{display:flex; gap:14mm; margin-top:16mm;}
   .prot .unters div{flex:1; border-top:1px solid #16181D; padding-top:3px; font-size:12px;}
   .prot .fuss{font-size:11px; color:#5C6270; margin-top:10mm;}
-  @page{ size:A4 portrait; margin:16mm 14mm; }
+  /* Die Seitenzahl setzt der Druck, nur er weiss, wo umgebrochen wird. Den Randkasten
+     kennt bisher nur Chromium; andere Browser lassen die Zeile weg. */
+  @page{ size:A4 portrait; margin:16mm 14mm;
+    @bottom-center{ content:"Seite " counter(page) " von " counter(pages);
+      font-family:"IBM Plex Sans", sans-serif; font-size:9pt; color:#5C6270; } }
   @media print{
     html,body{height:auto; background:#fff;}
     .rail, .leiste, .nodruck{display:none !important;}
@@ -227,6 +232,22 @@
     .rail{border-right:0; border-bottom:1px solid var(--line); min-height:0;}
     .rail-liste{max-height:230px;}
     .treihe{grid-template-columns:28px minmax(0,1fr) 92px 62px; gap:8px; padding:11px 12px;}
+    /* Ja, Nein und Enthaltung passen auf dem schmalen Schirm nicht neben den Namen:
+       der Name bekommt die erste Zeile, die drei Zahlen die zweite. */
+    .treihe.jeperson{grid-template-columns:28px repeat(3,minmax(0,1fr)) 62px !important;
+      grid-template-areas:"name name name name name" "rang ja nein enth knoepfe"; row-gap:9px;}
+    .treihe.jeperson > .rang{grid-area:rang;}
+    .treihe.jeperson > .kzelle{grid-area:name;}
+    .treihe.jeperson > .zeilknoepfe{grid-area:knoepfe;}
+    .treihe.jeperson > input.stimmen:nth-of-type(1){grid-area:ja;}
+    .treihe.jeperson > input.stimmen:nth-of-type(2){grid-area:nein;}
+    .treihe.jeperson > input.stimmen:nth-of-type(3){grid-area:enth;}
+    .treihe.kopf.jeperson > span:nth-of-type(1){grid-area:rang;}
+    .treihe.kopf.jeperson > span:nth-of-type(2){grid-area:name;}
+    .treihe.kopf.jeperson > span:nth-of-type(3){grid-area:ja;}
+    .treihe.kopf.jeperson > span:nth-of-type(4){grid-area:nein;}
+    .treihe.kopf.jeperson > span:nth-of-type(5){grid-area:enth;}
+    .treihe.kopf.jeperson > span:nth-of-type(n+6){display:none;}
     .flaeche{padding:20px 16px 50px;}
   }
   @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
@@ -314,6 +335,34 @@
   }
   function sitzeText(t){ const n=sitzeVon(t); return n===Infinity ? "offen" : n+(n===1?" Sitz":" Sitze"); }
   function sitzeFuer(id){ const t=teilVon(id); return t ? sitzeVon(t) : 1; }
+  const zahl=x=> Number(x)||0;
+  // Ist die Kandidatur gezaehlt, heisst ein leeres Nein- oder Enthaltungsfeld null.
+  // Solange nicht gezaehlt ist, bleibt es leer und die Niederschrift zeigt einen Strich.
+  const nullzahl=(k,v)=> String(v==null?"":v).trim()!=="" ? v
+                       : (String(k.stimmen==null?"":k.stimmen).trim()!=="" ? "0" : "");
+  // Stehen nicht mehr Kandidaturen als Sitze zur Wahl, wird ueber jede Person einzeln
+  // mit Ja, Nein oder Enthaltung abgestimmt. Die Enthaltung zu einer einzelnen Person
+  // ist weder eine Enthaltung zum ganzen Wahlgang noch ein Nein und steckt deshalb in
+  // keiner Gesamtzahl — sie gehoert je Person in die Niederschrift.
+  function jePersonD(d, sitze){
+    const n=(d.kandidaten||[]).length;
+    return n>0 && (sitze===Infinity || n<=sitze);
+  }
+  function jePerson(id){ return jePersonD(daten(id), sitzeFuer(id)); }
+  // Frueher standen Nein und Enthaltung als Gesamtzahl am Wahlgang; wo ueber jede Person
+  // einzeln abgestimmt wurde, galten sie fuer jede Person gleichermassen. Ein alter Stand
+  // wird beim Laden darauf umgeschrieben.
+  function umstellen(){
+    for(const id in S.wahlgaenge){
+      const d=S.wahlgaenge[id];
+      if(!d || !jePersonD(d, sitzeFuer(id))) continue;
+      const gn=String(d.nein||"").trim(), ge=String(d.enth||"").trim();
+      if(!gn && !ge) continue;
+      if(d.kandidaten.some(k=> String(k.nein||"").trim() || String(k.enth||"").trim())) continue;
+      d.kandidaten.forEach(k=>{ if(gn) k.nein=gn; if(ge) k.enth=ge; });
+      d.nein=""; d.enth="";
+    }
+  }
   function sortiert(id){
     return daten(id).kandidaten.slice().sort((a,b)=>
       ((Number(b.stimmen)||0)-(Number(a.stimmen)||0))
@@ -502,7 +551,7 @@
         && (d.art||"offen")==="offen" && d.blockwahl!==false
         && !d.stichwahl && !String(d.reihenfolge||"").trim()
         && (d.sitze==null || String(d.sitze).trim()==="")
-        && ["abgegeben","enth","ung","nein","leitung","bemerkung","block"]
+        && ["abgegeben","enth","ung","nein","leitung","bemerkung","block","blockNein","blockEnth"]
              .every(k=> !String(d[k]==null?"":d[k]).trim());
   }
   function nutzdaten(){
@@ -529,7 +578,7 @@
       const roh=localStorage.getItem(SCHLUESSEL) || localStorage.getItem(SCHLUESSEL_ALT);
       if(!roh) return;
       const d=JSON.parse(roh);
-      if(d && d.kopf) Object.assign(S,d);
+      if(d && d.kopf){ Object.assign(S,d); umstellen(); }
     }catch(e){}
   }
   function stand(){
@@ -596,6 +645,22 @@
     if(S.ansicht==="einrichtung") einrichtungZeichnen(f);
     else if(S.ansicht==="protokoll") protokollZeichnen(f);
     else wahlgangZeichnen(f);
+  }
+  // Nach dem Verlassen eines Feldes wird neu gezeichnet, damit Haken und Hinweise stimmen.
+  // Gezeichnet wird erst, wenn der Eingabepunkt angekommen ist, und danach wieder auf
+  // dasselbe Feld gesetzt — sonst reisst das Weitertippen mit der Tabulatortaste ab.
+  let malTimer=null;
+  function spaeterZeichnen(){
+    clearTimeout(malTimer);
+    malTimer=setTimeout(()=>{
+      const a=document.activeElement||{}, id=a.id||"";
+      const von=a.selectionStart, bis=a.selectionEnd;
+      zeichnen();
+      const n=id ? document.getElementById(id) : null;
+      if(!n || !n.focus) return;
+      n.focus();
+      try{ if(von!=null) n.setSelectionRange(von,bis); }catch(e){}
+    },0);
   }
 
   function einrichtungZeichnen(f){
@@ -722,7 +787,7 @@
       if(!j || !j.kopf){ meldung(k5,"Das ist kein gesicherter Stand."); return; }
       // Damit dieselbe Datei nach einem Abbruch erneut gewählt werden kann
       iz.value="";
-      const uebernehmen=()=>{ Object.assign(S,j); sichern(); zeichnen(); };
+      const uebernehmen=()=>{ Object.assign(S,j); umstellen(); sichern(); zeichnen(); };
       // Ein Stand ersetzt die ganze Sitzung. Stehen schon Stimmen, erst fragen.
       if(!etwasDa()){ uebernehmen(); return; }
       const kasten=el("div","hinweis");
@@ -807,6 +872,8 @@
     const d=daten(teil.id), raus=[];
     const anzZ=Number(String(S.kopf.anwesendS||"").trim());
     const gew=gezaehlt ? gewaehlt(teil.id) : [];
+    const jp=jePersonD(d, sitze);
+    const summe=k=> jp ? zahl(k.stimmen)+zahl(k.nein)+zahl(k.enth) : zahl(k.stimmen);
 
     // Gleichstand: an der Sitzgrenze entscheidet er, wer gewaehlt ist, sonst nur die Reihenfolge
     let grenzgleich=false;
@@ -820,8 +887,14 @@
     }
     // Mehr Stimmen als anwesende Stimmen
     if(anzZ>0){
-      const zuviel=reihen.filter(k=>(Number(k.stimmen)||0)>anzZ).map(k=>k.name);
+      const zuviel=reihen.filter(k=> summe(k)>anzZ).map(k=>k.name);
       if(zuviel.length) raus.push("Mehr Stimmen als anwesend sind ("+anzZ+"): "+zuviel.join(", ")+".");
+    }
+    // Ueber jede Person einzeln abgestimmt: gewaehlt ist nur, wer mehr Ja als Nein hat
+    if(jp && gezaehlt){
+      const durch=reihen.filter(k=> (zahl(k.stimmen)||zahl(k.nein)) && zahl(k.nein)>=zahl(k.stimmen))
+                        .map(k=> k.name+" ("+zahl(k.stimmen)+" Ja, "+zahl(k.nein)+" Nein)");
+      if(durch.length) raus.push("Nicht mehr Ja- als Nein-Stimmen, also nicht gewählt: "+durch.join(", ")+".");
     }
     // Bei geheimer Wahl muss die Rechnung mit den verteilten Zetteln aufgehen
     if((d.art||"offen")==="geheim" && String(d.abgegeben||"").trim()!==""){
@@ -829,10 +902,10 @@
       const drueber=reihen.filter(k=>(Number(k.stimmen)||0)>z).map(k=>k.name);
       if(drueber.length) raus.push("Mehr Ja-Stimmen als verteilte Stimmzettel ("+z+"): "+drueber.join(", ")+".");
       // Ja/Nein/Enthaltung je Person gibt es nur ohne Auswahl; dann muss die Summe passen
-      if(reihen.length && sitze!==Infinity && reihen.length<=sitze){
-        const rest=(Number(d.nein)||0)+(Number(d.enth)||0)+(Number(d.ung)||0);
-        const schief=reihen.filter(k=>((Number(k.stimmen)||0)+rest)!==z)
-                           .map(k=>k.name+" ("+((Number(k.stimmen)||0)+rest)+")");
+      if(jp){
+        const rest=zahl(d.ung);
+        const schief=reihen.filter(k=>(summe(k)+rest)!==z)
+                           .map(k=>k.name+" ("+(summe(k)+rest)+")");
         if(schief.length) raus.push("Ja, Nein, Enthaltungen und ungültige Stimmen ergeben nicht die "
           +z+" verteilten Stimmzettel: "+schief.join(", ")+".");
       }
@@ -887,13 +960,15 @@
 
     const reihen=sortiert(w.id);
     const gezaehlt = reihen.some(k=>k.stimmen!=="" && k.stimmen!=null);
-    const stich=!!d.stichwahl, ordnen=gleichstand(w.id);
-    const spalten="34px minmax(0,1fr) 128px"+(stich?" 128px":"")+(ordnen?" 110px":" 70px");
+    const stich=!!d.stichwahl, ordnen=gleichstand(w.id), jp=jePersonD(d, sitze);
+    const spalten="34px minmax(0,1fr) "+(jp?"92px 92px 92px":"128px")
+                 +(stich?" 128px":"")+(ordnen?" 110px":" 70px");
     const gleich=(a,b)=> a&&b && (Number(a.stimmen)||0)===(Number(b.stimmen)||0)
                               && (Number(a.stimmen2)||0)===(Number(b.stimmen2)||0);
     const tab=el("div","tabelle");
-    const kopf=el("div","treihe kopf"); kopf.style.gridTemplateColumns=spalten;
-    kopf.append(el("span",null,"#"), el("span",null,"Name"), el("span",null,"Stimmen"));
+    const kopf=el("div","treihe kopf"+(jp?" jeperson":"")); kopf.style.gridTemplateColumns=spalten;
+    kopf.append(el("span",null,"#"), el("span",null,"Name"), el("span",null, jp?"Ja":"Stimmen"));
+    if(jp) kopf.append(el("span",null,"Nein"), el("span",null,"Enthaltung"));
     if(stich) kopf.append(el("span",null,"Stichwahl"));
     kopf.append(el("span",null,""));
     tab.append(kopf);
@@ -902,10 +977,10 @@
     const gewSet=new Set(gezaehlt ? gewaehlt(w.id) : []);
     reihen.forEach((kand,i)=>{
       const gew = gewSet.has(kand);
-      const r=el("div","treihe"+(gew && kand.annahme==="ja" ? " gewaehlt":""));
+      const r=el("div","treihe"+(jp?" jeperson":"")+(gew && kand.annahme==="ja" ? " gewaehlt":""));
       r.style.gridTemplateColumns=spalten;
       r.append(el("div","rang", String(i+1)));
-      const mitte=el("div");
+      const mitte=el("div","kzelle");
       mitte.append(el("div","kname", kand.name));
       // Adressen bleiben von der Leinwand fern; sie wandern nur ins Protokoll
       const unter=el("div","kmail");
@@ -923,22 +998,21 @@
       }
       if(kand.nurStellv) mitte.append(el("div","marke-gewaehlt","Stellvertretung — nicht wählbar"));
       r.append(mitte);
-      const inp=document.createElement("input");
-      inp.className="stimmen"; inp.inputMode="numeric"; inp.id="st_"+w.id+"_"+i;
-      inp.value = kand.stimmen==null?"":kand.stimmen;
-      inp.setAttribute("aria-label","Stimmen für "+kand.name);
-      inp.oninput=()=>{ kand.stimmen = inp.value.replace(/[^0-9]/g,""); sichern(); };
-      inp.onblur=()=> zeichnen();
-      r.append(inp);
-      if(stich){
-        const i2s=document.createElement("input");
-        i2s.className="stimmen"; i2s.inputMode="numeric"; i2s.id="st2_"+w.id+"_"+i;
-        i2s.value = kand.stimmen2==null?"":kand.stimmen2;
-        i2s.setAttribute("aria-label","Stimmen der Stichwahl für "+kand.name);
-        i2s.oninput=()=>{ kand.stimmen2 = i2s.value.replace(/[^0-9]/g,""); sichern(); };
-        i2s.onblur=()=> zeichnen();
-        r.append(i2s);
-      }
+      // Die Kennung haengt an der Stelle im Bestand, nicht an der Zeile: die Reihenfolge
+      // springt beim Zaehlen, der Eingabepunkt soll es nicht.
+      const ki=d.kandidaten.indexOf(kand);
+      const feld=(key, kuerzel, was)=>{
+        const inp=document.createElement("input");
+        inp.className="stimmen"; inp.inputMode="numeric"; inp.id=kuerzel+"_"+w.id+"_"+ki;
+        inp.value = kand[key]==null?"":kand[key];
+        inp.setAttribute("aria-label", was+" für "+kand.name);
+        inp.oninput=()=>{ kand[key] = inp.value.replace(/[^0-9]/g,""); sichern(); };
+        inp.onblur=spaeterZeichnen;
+        r.append(inp);
+      };
+      feld("stimmen","st", jp?"Ja-Stimmen":"Stimmen");
+      if(jp){ feld("nein","ne","Nein-Stimmen"); feld("enth","en","Enthaltungen"); }
+      if(stich) feld("stimmen2","st2","Stimmen der Stichwahl");
       const knoepfe=el("div","zeilknoepfe");
       if(ordnen){
         // Bei gleicher Stimmenzahl setzt die Versammlung die Reihenfolge — Einvernehmen oder Los
@@ -963,7 +1037,7 @@
       e1.disabled=!anzZ;
       e1.title=anzZ ? "Einstimmig gewählt: "+anzZ+" Stimmen" : "In der Einrichtung fehlt die Stimmenzahl der Anwesenden";
       e1.setAttribute("aria-label","Einstimmig gewählt: "+kand.name);
-      e1.onclick=()=>{ kand.stimmen=anzZ; sichern(); zeichnen(); };
+      e1.onclick=()=>{ kand.stimmen=anzZ; if(jp){ kand.nein=""; kand.enth=""; } sichern(); zeichnen(); };
       const x=el("button","zk weg","×"); x.title="Streichen";
       x.setAttribute("aria-label","Kandidatur streichen: "+kand.name);
       x.onclick=()=>{ d.kandidaten = d.kandidaten.filter(k=>k!==kand); sichern(); zeichnen(); };
@@ -1061,11 +1135,14 @@
     const ih=document.createElement("input"); ih.className="breit"; ih.id="leitung_"+w.id;
     ih.placeholder=S.kopf.wahlleitung||"—";
     ih.value=d.leitung||""; ih.oninput=()=>{ d.leitung=ih.value; sichern(); };
-    ih.onblur=()=> zeichnen();
+    ih.onblur=spaeterZeichnen;
     lh.append(ih); fu.append(lh);
-    // Nein-Stimmen gibt es nur, wenn nicht mehr kandidieren als Sitze zu vergeben sind
-    if((d.kandidaten.length && d.kandidaten.length<=sitze) || d.nein) zahlfeld("Nein","nein");
-    zahlfeld("Enthaltungen","enth");
+    // Nein und Enthaltung stehen je Person in der Tabelle, sobald nicht mehr kandidieren
+    // als Sitze zu vergeben sind; sonst gelten sie fuer den ganzen Wahlgang
+    if(!jp){
+      if(d.nein) zahlfeld("Nein","nein");
+      zahlfeld("Enthaltungen","enth");
+    }
     if(geheim){ zahlfeld("Ungültige Stimmen","ung"); zahlfeld("Verteilte Stimmzettel","abgegeben"); }
     // Stichwahl nur anbieten, wo Gleichstand herrscht oder schon eine laeuft
     if(d.stichwahl || gleichstand(w.id)){
@@ -1090,27 +1167,38 @@
       const i2=document.createElement("input"); i2.className="zahl"; i2.inputMode="numeric"; i2.id="sitze_"+w.id;
       i2.value = sitze===Infinity ? "" : String(sitze);
       i2.placeholder = "offen"; i2.oninput=()=>{ d.sitze=i2.value.replace(/[^0-9]/g,""); sichern(); };
-      i2.onblur=()=>zeichnen();
+      i2.onblur=spaeterZeichnen;
       l2.append(i2); fu.append(l2);
     }
-    // Traegt bei allen dieselbe Stimmenzahl ein — im Block wie einzeln. Vorgeschlagen
-    // ist die volle Stimmenzahl, also Einstimmigkeit; sonst die Zahl ueberschreiben.
+    // Traegt bei allen dasselbe ein — im Block wie einzeln. Wurde im Block abgestimmt,
+    // gelten dieselben Zahlen fuer jede Person; dann gehoeren Nein und Enthaltung dazu.
+    // Vorgeschlagen ist die volle Stimmenzahl, also Einstimmigkeit.
     const anz=String(S.kopf.anwesendS||"").trim();
     const l3=el("label"); l3.append(el("span",null,"Alle auf"));
-    const i3=document.createElement("input");
-    i3.className="zahl"; i3.inputMode="numeric"; i3.id="block_"+w.id;
-    i3.value = d.block!=null && d.block!=="" ? d.block : anz;
-    i3.placeholder = anz || "—";
-    i3.oninput=()=>{ d.block=i3.value.replace(/[^0-9]/g,""); i3.value=d.block; sichern(); };
-    l3.append(i3);
+    const felder={};
+    const alleFeld=(key, lab, vorgabe)=>{
+      if(lab) l3.append(el("span",null,lab));
+      const i=document.createElement("input");
+      i.className="zahl"; i.inputMode="numeric"; i.id=key+"_"+w.id;
+      i.value = d[key]!=null && d[key]!=="" ? d[key] : (vorgabe||"");
+      i.placeholder = vorgabe || "0";
+      i.oninput=()=>{ d[key]=i.value.replace(/[^0-9]/g,""); i.value=d[key]; sichern(); };
+      l3.append(i); felder[key]=i;
+    };
+    alleFeld("block", jp?"Ja":"", anz || "—");
+    if(jp){ alleFeld("blockNein","Nein",""); alleFeld("blockEnth","Enthaltung",""); }
     const be=el("button","knopf","übernehmen");
     be.disabled = !d.kandidaten.length;
     be.title = !d.kandidaten.length ? "Noch niemand aufgestellt"
-             : "Jede Kandidatur bekommt die nebenstehende Stimmenzahl";
+             : jp ? "Jede Kandidatur bekommt die nebenstehenden Zahlen"
+                  : "Jede Kandidatur bekommt die nebenstehende Stimmenzahl";
     be.onclick=()=>{
-      const v=String(i3.value||"").trim();
+      const v=String(felder.block.value||"").trim();
       if(!v) return;
-      d.kandidaten.forEach(k=> k.stimmen=v); sichern(); zeichnen();
+      const n=jp ? String(felder.blockNein.value||"").trim() : "";
+      const e=jp ? String(felder.blockEnth.value||"").trim() : "";
+      d.kandidaten.forEach(k=>{ k.stimmen=v; if(jp){ k.nein=n; k.enth=e; } });
+      sichern(); zeichnen();
     };
     l3.append(be);
     fu.append(l3);
@@ -1173,9 +1261,13 @@
     const teile=[];
     if(sitze!=null && sitze!==Infinity) teile.push("Zu wählen: "+sitze);
     teile.push("Art der Wahl: "+art+(d.blockwahl?", im Block":""));
-    // Nein-Stimmen gibt es nur, wenn nicht mehr kandidieren als Sitze zu vergeben sind
-    if(d.nein || (sitze!=null && (d.kandidaten||[]).length<=sitze)) teile.push("Nein: "+(d.nein||"0"));
-    teile.push("Enthaltungen: "+(d.enth||"0"));
+    // Nein und Enthaltung stehen je Person in der Tabelle, wenn nicht mehr kandidieren
+    // als Sitze zu vergeben sind — zu einzelnen Personen darf man sich enthalten
+    if(jePersonD(d, sitze)) teile.push("Ja, Nein und Enthaltung je Person");
+    else{
+      if(d.nein) teile.push("Nein: "+d.nein);
+      teile.push("Enthaltungen: "+(d.enth||"0"));
+    }
     if(art==="geheim"){
       teile.push("ungültige Stimmen: "+(d.ung||"0"));
       teile.push("verteilte Stimmzettel: "+(d.abgegeben||"—"));
@@ -1204,9 +1296,11 @@
   }
   // Gewaehlt ist, wer die meisten Stimmen hat. Wer die Wahl ablehnt, rueckt heraus,
   // der Sitz faellt an die naechste Kandidatur.
+  // Wird ueber jede Person einzeln abgestimmt, ist nur gewaehlt, wer mehr Ja als Nein hat.
   function gewaehlt(id){
-    const n=sitzeFuer(id);
-    const a=sortiert(id).filter(k=>(Number(k.stimmen)||0)>0 && k.annahme!=="nein");
+    const n=sitzeFuer(id), jp=jePerson(id);
+    const a=sortiert(id).filter(k=>(Number(k.stimmen)||0)>0 && k.annahme!=="nein"
+                               && !(jp && zahl(k.nein)>=zahl(k.stimmen)));
     return n===Infinity ? a : a.slice(0,n);
   }
   function teilProtokoll(wo, teil){
@@ -1214,13 +1308,18 @@
     if(!d.kandidaten.length) return;
     const reihen=sortiert(teil.id);
     const ab=el("div","abschnitt");
+    // Der Wahlgang ueberschreibt seine beiden Tabellen, so wie auf dem Schirm auch
+    ab.append(el("h3",null, teil.label+" ("+sitzeText(teil)+")"));
     const wl=leitungAbweichend(d);
     if(wl) ab.append(pleitung(wl));
     const hatStich=reihen.some(k=> String(k.stimmen2||"").trim()!=="");
-    const kspalten=[{kopf:"Name",k:"name"},{kopf:"Stimmen",k:"stimmen",klasse:"z"}];
+    const jp=jePerson(teil.id);
+    const kspalten=[{kopf:"Name",k:"name"},{kopf:jp?"Ja":"Stimmen",k:"stimmen",klasse:"z"}];
+    if(jp) kspalten.push({kopf:"Nein",k:"nein",klasse:"z"},{kopf:"Enthaltung",k:"enth",klasse:"z"});
     if(hatStich) kspalten.push({kopf:"Stichwahl",k:"stimmen2",klasse:"z"});
-    ab.append(el("h3",null,"Kandidierende — "+teil.label));
-    ab.append(ptab(kspalten, reihen.map(k=>({name:k.name, stimmen:k.stimmen, stimmen2:k.stimmen2}))));
+    ab.append(el("h4",null,"Kandidierende"));
+    ab.append(ptab(kspalten, reihen.map(k=>({name:k.name, stimmen:k.stimmen, stimmen2:k.stimmen2,
+      nein:nullzahl(k,k.nein), enth:nullzahl(k,k.enth)}))));
     ab.append(pmeta(d, sitzeVon(teil)));
     if(String(d.bemerkung||"").trim()) ab.append(el("p","pmeta","Bemerkung: "+d.bemerkung.trim()));
     const gew=gewaehlt(teil.id);
@@ -1228,7 +1327,7 @@
     const stv=teil.label.indexOf("Stellv")===0;
     const sp = stv ? [{kopf:"#",k:"rang",klasse:"r"},{kopf:"Name",k:"name"},{kopf:"E-Mail",k:"mail"}]
                    : [{kopf:"Name",k:"name"},{kopf:"E-Mail",k:"mail"}];
-    ab.append(el("h3",null,"Gewählt — "+teil.label+" ("+sitzeText(teil)+")"));
+    ab.append(el("h4",null,"Gewählt"));
     ab.append(ptab(sp, gew.map((k,i)=>({rang:i+1, name:k.name, mail:k.mail})), "erg"));
     // Die Amtszeit beginnt mit der Annahme; offene und abgelehnte Wahlen gehoeren ins Protokoll
     const offen=gew.filter(k=>k.annahme!=="ja").map(k=>k.name);
@@ -1305,19 +1404,33 @@
     const F=S.faecher.filter(f=> daten("fk::"+f).kandidaten.length
                               || daten("fks::"+f).kandidaten.length);
     if(F.length){
-      const b=blatt();
-      b.append(el("h2",null,"Fachkonferenzen"));
       const SF={kopf:"Fach",k:"fach",klasse:"f"}, SN={kopf:"Name",k:"name"},
             SZ={kopf:"Stimmen",k:"stimmen",klasse:"z"}, SM={kopf:"E-Mail",k:"mail"},
             SR={kopf:"#",k:"rang",klasse:"r"};
       const sammeln=(praefix, erg)=>{
         const a=[];
-        F.forEach(f=> (erg?gewaehlt(praefix+f):sortiert(praefix+f)).forEach((k,i)=>
-          a.push({fach:f, rang:i+1, name:k.name, stimmen:k.stimmen, stimmen2:k.stimmen2, mail:k.mail})));
+        F.forEach(f=>{
+          const jpf=jePerson(praefix+f);
+          (erg?gewaehlt(praefix+f):sortiert(praefix+f)).forEach((k,i)=>
+            a.push({fach:f, rang:i+1, name:k.name, stimmen:k.stimmen, stimmen2:k.stimmen2, mail:k.mail,
+                    nein: jpf?nullzahl(k,k.nein):"", enth: jpf?nullzahl(k,k.enth):""}));
+        });
         return a;
       };
       const SS={kopf:"Stichwahl",k:"stimmen2",klasse:"z"};
+      const SJ={kopf:"Ja",k:"stimmen",klasse:"z"},
+            SNe={kopf:"Nein",k:"nein",klasse:"z"}, SEn={kopf:"Enthaltung",k:"enth",klasse:"z"};
       const stichDa=pre=> F.some(f=> daten(pre+f).kandidaten.some(k=> String(k.stimmen2||"").trim()!==""));
+      // Wurde in einem Fach ueber jede Person einzeln abgestimmt, bekommt die
+      // gemeinsame Tabelle die Spalten Nein und Enthaltung. „Ja" steht ueber der
+      // ersten Spalte nur, wenn das fuer alle Faecher gilt.
+      const kspaltenF=pre=>{
+        const alle=F.every(f=> jePerson(pre+f)), eins=F.some(f=> jePerson(pre+f));
+        const s=[SF, SN, alle?SJ:SZ];
+        if(eins) s.push(SNe, SEn);
+        if(stichDa(pre)) s.push(SS);
+        return s;
+      };
       const leitZeilen=(wo,pre)=>{
         const l=F.map(f=>[f, leitungAbweichend(daten(pre+f))]).filter(x=>x[1]);
         if(!l.length) return;
@@ -1329,21 +1442,30 @@
                  .map(f=> f+": "+daten(pre+f).bemerkung.trim());
         if(b.length) wo.append(el("p","pmeta","Bemerkung — "+b.join(" · ")));
       };
+      // Ein Blatt je Wahlgang, wie bei den uebrigen Gremien auch. Wo die Seite bricht,
+      // entscheidet der Browser.
+      const b=blatt();
+      b.append(el("h2",null,"Fachkonferenzen"));
+      b.append(el("h3",null,"Beratende Mitglieder"));
       leitZeilen(b,"fk::");
-      b.append(el("h3",null,"Kandidierende — Beratende Mitglieder"));
-      b.append(ptab(stichDa("fk::")?[SF,SN,SZ,SS]:[SF,SN,SZ], sammeln("fk::",false)));
+      b.append(el("h4",null,"Kandidierende"));
+      b.append(ptab(kspaltenF("fk::"), sammeln("fk::",false)));
       pmetaFaecher(b,"fk::",F); bemZeilen(b,"fk::");
-      b.append(el("h3",null,"Gewählt — Beratende Mitglieder"));
+      b.append(el("h4",null,"Gewählt"));
       b.append(ptab([SF,SN,SM], sammeln("fk::",true), "erg"));
       annahmeZeilen(b, "fk::", F);
-      leitZeilen(b,"fks::");
-      b.append(el("h3",null,"Kandidierende — Stellvertretung"));
-      b.append(ptab(stichDa("fks::")?[SF,SN,SZ,SS]:[SF,SN,SZ], sammeln("fks::",false)));
-      pmetaFaecher(b,"fks::",F); bemZeilen(b,"fks::");
-      b.append(el("h3",null,"Gewählt — Stellvertretung"));
-      b.append(ptab([SF,SR,SN,SM], sammeln("fks::",true), "erg"));
-      annahmeZeilen(b, "fks::", F);
       prot.append(b);
+      const b2=blatt();
+      b2.append(el("h2",null,"Fachkonferenzen"));
+      b2.append(el("h3",null,"Stellvertretung"));
+      leitZeilen(b2,"fks::");
+      b2.append(el("h4",null,"Kandidierende"));
+      b2.append(ptab(kspaltenF("fks::"), sammeln("fks::",false)));
+      pmetaFaecher(b2,"fks::",F); bemZeilen(b2,"fks::");
+      b2.append(el("h4",null,"Gewählt"));
+      b2.append(ptab([SF,SR,SN,SM], sammeln("fks::",true), "erg"));
+      annahmeZeilen(b2, "fks::", F);
+      prot.append(b2);
     }
     const b=blatt();
     b.append(el("h2",null,"Abschluss"));

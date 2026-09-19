@@ -13,6 +13,9 @@ Ergebnisse an der Wand, danach die Wahlniederschrift.
 4. Niederschrift: Ansicht öffnen, drucken, im Druckdialog „Als PDF speichern“ wählen
    und die Kopf- und Fußzeilen des Browsers abschalten
 
+Die Seitenzahl im unteren Seitenrand setzen nur Chromium, Chrome und Edge. Firefox
+lässt sie weg.
+
 ## Liste und Stand
 
 Zwei Dateien, zwei Zwecke:
