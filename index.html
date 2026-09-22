@@ -190,6 +190,7 @@
   .prot .abschnitt > .pzeile:first-child{margin-top:16px;}
   .prot .psatz{font-size:13px; margin:10px 0 0;}
   .prot .pmeta{font-size:12.5px; margin:6px 0 0; color:#5C6270;}
+  .prot .pklein{font-size:11px; color:#5C6270; font-weight:400;}
   .prot .pmeta b{color:#16181D; font-weight:600;}
   .prot table{width:100%; border-collapse:collapse; font-size:13px; margin-top:3px;}
   .prot thead{display:table-header-group;}
@@ -1528,11 +1529,14 @@
     const d=document.createElement("div");
     d.append(el("h1",null,"Niederschrift über die Wahlen in der Gesamtelternvertretung"));
     d.append(el("div","pjahr","Schuljahr "+schuljahr()));
-    const z=(lab,wert)=>{ const r=el("div","pzeile");
-      r.append(el("b",null,lab), el("span",null,wert||"—")); d.append(r); };
+    const z=(lab,wert,zusatz)=>{ const r=el("div","pzeile");
+      const w=el("span",null,wert||"—");
+      if(zusatz) w.append(el("span","pklein", "   "+zusatz));
+      r.append(el("b",null,lab), w); d.append(r); };
     z("Schule", S.kopf.schule);
     z("Datum, Uhrzeit", S.kopf.datum);
-    z("Wahlleitung", hauptLeitung());
+    // Einzelne Wahlgaenge nennen ihre Leitung selbst
+    z("Wahlleitung", hauptLeitung(), "wo nicht anders vermerkt");
     if(String(S.kopf.wahlhelfer||"").trim()) z("Wahlhelfende", S.kopf.wahlhelfer);
     d.append(el("p","psatz",
       "Anwesend sind "+(S.kopf.anwesendW||"—")+" Wahlberechtigte mit insgesamt "
