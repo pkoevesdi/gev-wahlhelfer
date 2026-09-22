@@ -4,7 +4,6 @@
      Papa Parse 5.4.1 · Copyright (c) 2023 Matthew Holt · MIT -->
 <meta charset="utf-8">
 <title>GEV-Wahlhelfer</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@500;600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <!-- Papa Parse 5.4.1, MIT, liegt im Ordner. Nur falls das nicht geladen werden darf
      — etwa unter einer strengen Sicherheitsregel — kommt es von cdnjs. -->
 <script src="papaparse.min.js"></script>
@@ -18,9 +17,11 @@
     --line:#DFE1E7; --line-soft:#ECEEF2; --accent:#1F4FA3; --accent-soft:#E7EDF8;
     --elected:#1E6E4B; --elected-soft:#E3F1EA; --warn:#9A6B12; --warn-soft:#FAF0DC;
     --shadow:0 1px 2px rgba(22,24,29,.06), 0 8px 24px rgba(22,24,29,.05);
-    --display:"Libre Franklin", "Helvetica Neue", Arial, sans-serif;
-    --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-    --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    /* Was auf dem Rechner liegt. Nichts wird nachgeladen, nichts mitgeliefert;
+       den Unterschied zwischen Ueberschrift und Text macht die Staerke. */
+    --display:system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --body:system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono:ui-monospace, "DejaVu Sans Mono", "SF Mono", Consolas, Menlo, monospace;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -59,6 +60,8 @@
   .wg.fertig .punkt{border-color:var(--elected); background:var(--elected);}
   .wg .txt{flex:1; min-width:0; font-size:13.5px;}
   .wg .sitze{font-family:var(--mono); font-size:11px; color:var(--faint);}
+  .railkopf{padding:12px 9px 4px; font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--faint); font-weight:600;}
 
   /* ---- Bühne ---- */
   .buehne{display:flex; flex-direction:column; min-width:0;}
@@ -144,6 +147,13 @@
   .fussleiste input.breiter{flex:1; min-width:0; width:auto; font-family:var(--body); text-align:left;}
   .fussleiste input{width:88px; font-family:var(--mono); text-align:right; border:1px solid var(--line);
     border-radius:7px; padding:6px 9px; background:var(--panel);}
+  /* ---- Wahlleitung je Wahlgang ---- */
+  .wl{display:flex; flex-wrap:wrap; gap:6px; align-items:center; flex:1; min-width:0;}
+  .wlk{border:1px solid var(--line); background:var(--panel); border-radius:999px;
+    padding:5px 12px; font-size:13px; line-height:1.2;}
+  .wlk:hover{border-color:var(--accent); color:var(--accent);}
+  .wlk.an{border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:600;}
+  .fussleiste input.wlfeld{width:170px; font-family:var(--body); text-align:left;}
 
   /* ---- Einrichtung ---- */
   .karten{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); margin-top:20px;}
@@ -198,7 +208,7 @@
      kennt bisher nur Chromium; andere Browser lassen die Zeile weg. */
   @page{ size:A4 portrait; margin:16mm 14mm;
     @bottom-center{ content:"Seite " counter(page) " von " counter(pages);
-      font-family:"IBM Plex Sans", sans-serif; font-size:9pt; color:#5C6270; } }
+      font-family:system-ui, Arial, sans-serif; font-size:9pt; color:#5C6270; } }
   @media print{
     html,body{height:auto; background:#fff;}
     .rail, .leiste, .nodruck{display:none !important;}
@@ -300,12 +310,19 @@
       {id:"tk",        label:"Mitglied",        sitze:1},
       {id:"tk_stellv", label:"Stellvertretung", sitze:2}]};
 
-  const S = {
-    kopf:{schule:"", datum:heuteISO(), wahlleitung:"", wahlhelfer:"", anwesendW:"", anwesendS:"", quorum:"erfüllt", teilkonferenz:""},
-    // Ohne gesicherten Stand beginnt das Werkzeug in der Einrichtung; wer schon
-    // gearbeitet hat, landet wieder dort, wo er aufgehoert hat.
-    mitglieder:[], faecher:[], wahlgaenge:{}, aktiv:"vorsitz", ansicht:"einrichtung", listeName:""
-  };
+  // Ohne gesicherten Stand beginnt das Werkzeug in der Einrichtung; wer schon
+  // gearbeitet hat, landet wieder dort, wo er aufgehoert hat. Derselbe Leerstand
+  // dient beim Laden und beim Zuruecksetzen: eine Datei, die einen Schluessel nicht
+  // kennt, soll ihn loeschen und nicht den alten Inhalt stehen lassen.
+  function leerstand(){
+    return {
+      kopf:{schule:"", datum:heuteISO(), wahlleitung:"", wahlhelfer:"", anwesendW:"", anwesendS:"",
+            quorum:"erfüllt", teilkonferenz:""},
+      mitglieder:[], fachbloecke:[], leitungen:[], wahlgaenge:{},
+      aktiv:"vorstand", ansicht:"einrichtung", listeName:"", nachversorgt:0, unklar:[]
+    };
+  }
+  const S = leerstand();
   // Namen kommen ausschliesslich aus der geladenen Datei und bleiben im Browser
   // dieses Rechners. Die Seite selbst speichert nichts ausserhalb.
   const SCHLUESSEL = "gev-wahlhelfer";
@@ -314,10 +331,66 @@
 
   function heuteISO(){ const d=new Date(); return String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear(); }
   function el(t,k,x){ const n=document.createElement(t); if(k) n.className=k; if(x!=null) n.textContent=x; return n; }
+  // „Block 1: Ma, Ph; Block 2: De, En/Frz" — Komma trennt die Faecher, Semikolon die
+  // Bloecke, der Name vor dem Doppelpunkt ist die Ueberschrift. Fehlt er, wird gezaehlt.
+  // Wozu die Schule die Bloecke bildet, ist ihre Sache; das Werkzeug zeigt sie an und
+  // meldet, wer in zweien desselben Blocks steht.
+  function fachblockLesen(txt){
+    const raus=[];
+    String(txt||"").split(";").forEach(teil=>{
+      const t=teil.trim(); if(!t) return;
+      const m=/^([^:,]{1,40}):([\s\S]*)$/.exec(t);
+      const faecher=(m ? m[2] : t).split(",").map(x=>x.trim()).filter(Boolean);
+      if(faecher.length) raus.push({titel: m ? m[1].trim() : "", faecher});
+    });
+    return raus;
+  }
+  function fachblockTitel(s, i){ return s.titel || ("Block "+(i+1)); }
+  // Die Faecher stehen nur in den Bloecken; die flache Liste wird daraus gebildet,
+  // damit beide nicht auseinanderlaufen koennen. Eine schlichte Kommaliste ist ein
+  // einzelner Block ohne Titel — der zeigt keine Ueberschrift und bildet keine Nachbarn.
+  function faecherListe(){
+    return (S.fachbloecke||[]).reduce((a,x)=> a.concat(x.faecher), []);
+  }
+  function bloeckeSichtbar(){
+    const s=S.fachbloecke||[];
+    return s.length>1 || (s.length===1 && !!s[0].titel);
+  }
+  // Eine neu geladene Liste bringt ihre Faecher mit: bekannte behalten ihren Block,
+  // unbekannte haengen hinten ohne an. Die Reihenfolge folgt danach den Bloecken.
+  function fachbloeckeAngleichen(neu){
+    const da=new Set(neu), drin=[];
+    const bloecke=(S.fachbloecke||[])
+      .map(x=> ({titel:x.titel, faecher:x.faecher.filter(f=> da.has(f))}))
+      .filter(x=> x.faecher.length);
+    bloecke.forEach(x=> x.faecher.forEach(f=> drin.push(f)));
+    const rest=neu.filter(f=> !drin.includes(f));
+    if(rest.length) bloecke.push({titel:"", faecher:rest});
+    S.fachbloecke=bloecke;
+  }
+  function fachblockText(){
+    const s=S.fachbloecke||[];
+    return bloeckeSichtbar()
+      ? s.map(x=> (x.titel ? x.titel+": " : "") + x.faecher.join(", ")).join("; ")
+      : faecherListe().join(", ");
+  }
+  function fachblockVon(fach){
+    const s=S.fachbloecke||[];
+    if(!bloeckeSichtbar()) return "";
+    for(let i=0;i<s.length;i++) if(s[i].faecher.includes(fach)) return fachblockTitel(s[i], i);
+    return "";
+  }
+  // Faecher desselben Blocks, das eigene ausgenommen
+  function fachblockNachbarn(fach){
+    if(!bloeckeSichtbar()) return [];
+    for(const x of (S.fachbloecke||[])) if(x.faecher.includes(fach)) return x.faecher.filter(f=>f!==fach);
+    return [];
+  }
   function wgListe(){
     const fk=[];
-    for(const f of S.faecher){
-      fk.push({gruppe:"Fachkonferenzen", id:"fkseite::"+f, titel:"Fachkonferenz "+f, teile:[
+    for(const f of faecherListe()){
+      fk.push({gruppe:"Fachkonferenzen", fachblock:fachblockVon(f),
+               id:"fkseite::"+f, titel:"Fachkonferenz "+f, teile:[
         {id:"fk::"+f,  label:"Beratende Mitglieder", sitze:2},
         {id:"fks::"+f, label:"Stellvertretung",      sitze:4}]});
     }
@@ -353,6 +426,11 @@
   // einzeln abgestimmt wurde, galten sie fuer jede Person gleichermassen. Ein alter Stand
   // wird beim Laden darauf umgeschrieben.
   function umstellen(){
+    // Aeltere Staende kennen nur die flache Faecherliste, neuere die Bloecke. Geladen
+    // wird, was da ist; die flache Liste verschwindet danach aus dem Zustand.
+    if(!(S.fachbloecke||[]).length && Array.isArray(S.faecher) && S.faecher.length)
+      S.fachbloecke=[{titel:"", faecher:S.faecher.slice()}];
+    delete S.faecher;
     for(const id in S.wahlgaenge){
       const d=S.wahlgaenge[id];
       if(!d || !jePersonD(d, sitzeFuer(id))) continue;
@@ -491,6 +569,8 @@
   // CSV liest Papa Parse: Trennzeichen wird erkannt, Anführungszeichen,
   // eingebettete Trennzeichen und Zeilenumbrüche inbegriffen.
   function csvLesen(text){
+    if(typeof Papa === "undefined")
+      throw new Error("Zum Lesen der Vertreterliste fehlt papaparse.min.js neben dieser Seite.");
     const e = Papa.parse(text.replace(/^\uFEFF/, ""), {skipEmptyLines:false});
     return e.data.map(z => z.map(f => String(f == null ? "" : f).trim()));
   }
@@ -541,7 +621,7 @@
     S.nachversorgt = ergaenzt;
     S.unklar = [...new Set(unklar)];
     // Bringt die Datei keine Fächer mit, bleiben die eingetragenen stehen
-    if(erg.faecher.length) S.faecher=erg.faecher;
+    if(erg.faecher.length) fachbloeckeAngleichen(erg.faecher);
     sichern(); zeichnen();
   }
 
@@ -560,7 +640,10 @@
     // es ohnehin wieder mit denselben Vorgaben.
     const wg={};
     for(const k in S.wahlgaenge) if(!unberuehrt(S.wahlgaenge[k])) wg[k]=S.wahlgaenge[k];
-    return {kopf:S.kopf, mitglieder:S.mitglieder, faecher:S.faecher,
+    // faecher steht abgeleitet mit in der Datei, damit eine aeltere Fassung des
+    // Werkzeugs den Stand noch lesen kann; geladen wird fachbloecke.
+    return {kopf:S.kopf, mitglieder:S.mitglieder, faecher:faecherListe(), fachbloecke:S.fachbloecke||[],
+            leitungen:S.leitungen||[],
             wahlgaenge:wg, aktiv:S.aktiv, ansicht:S.ansicht, listeName:S.listeName};
   }
   async function verbinden(){
@@ -578,7 +661,7 @@
       const roh=localStorage.getItem(SCHLUESSEL) || localStorage.getItem(SCHLUESSEL_ALT);
       if(!roh) return;
       const d=JSON.parse(roh);
-      if(d && d.kopf){ Object.assign(S,d); umstellen(); }
+      if(d && d.kopf){ Object.assign(S, leerstand(), d); umstellen(); }
     }catch(e){}
   }
   function stand(){
@@ -622,7 +705,10 @@
     ein.append(el("span","punkt"), el("span","txt","Einrichtung"));
     ein.onclick=()=>{ S.ansicht="einrichtung"; sichern(); zeichnen(); };
     rail.append(ein);
+    let letzterBlock="";
     for(const w of wgListe()){
+      if(w.fachblock && w.fachblock!==letzterBlock) rail.append(el("div","railkopf", w.fachblock));
+      letzterBlock = w.fachblock || letzterBlock;
       const btn=el("button","wg "+statusVon(w));
       btn.setAttribute("aria-current", S.aktiv===w.id && S.ansicht==="wahlgang" ? "true":"false");
       btn.append(el("span","punkt"),
@@ -740,7 +826,7 @@
       info.innerHTML = (S.listeName?S.listeName+" · ":"")+"<b>"+aus.length+"</b> Vertreter"
         + (st?", <b>"+st+"</b> Stellvertreter":"")
         + (frei?", <b>"+frei+"</b> frei ergänzt":"")
-        + ", <b>"+S.faecher.length+"</b> Fachkonferenzen";
+        + ", <b>"+faecherListe().length+"</b> Fachkonferenzen";
     } else { info.textContent="Ohne Liste lassen sich Kandidaten nur von Hand eintippen."; }
     if((S.unentscheidbar||[]).length) meldung(k3,
       "Mehrfach ohne Adresse: " + S.unentscheidbar.join("; ") +
@@ -765,9 +851,13 @@
     const k4=el("div","karte");
     k4.append(el("h3",null,"Konferenzen"));
     k4.append(el("p",null,"Für welche Fächer und Bereiche an dieser Schule gewählt wird. Leer lassen, was es nicht gibt."));
-    const lf=el("label","feld"); lf.append(el("span",null,"Fachkonferenzen, mit Komma getrennt"));
-    const inf=document.createElement("input"); inf.id="feld_faecher"; inf.value=S.faecher.join(", ");
-    inf.oninput=()=>{ S.faecher=inf.value.split(",").map(s=>s.trim()).filter(Boolean); sichern(); railZeichnen(); };
+    const lf=el("label","feld");
+    lf.append(el("span",null,"Fachkonferenzen, mit Komma getrennt — Semikolon trennt Blöcke"));
+    const inf=document.createElement("input"); inf.id="feld_faecher"; inf.value=fachblockText();
+    inf.oninput=()=>{
+      S.fachbloecke=fachblockLesen(inf.value);
+      sichern(); railZeichnen();
+    };
     lf.append(inf); k4.append(lf);
     const l4=el("label","feld"); l4.append(el("span",null,"Teilkonferenz für"));
     const i4=document.createElement("input"); i4.id="feld_tk"; i4.value=S.kopf.teilkonferenz||"";
@@ -787,7 +877,8 @@
       if(!j || !j.kopf){ meldung(k5,"Das ist kein gesicherter Stand."); return; }
       // Damit dieselbe Datei nach einem Abbruch erneut gewählt werden kann
       iz.value="";
-      const uebernehmen=()=>{ Object.assign(S,j); umstellen(); sichern(); zeichnen(); };
+      // Der Leerstand davor raeumt Schluessel weg, die die Datei nicht mitbringt
+      const uebernehmen=()=>{ Object.assign(S, leerstand(), j); umstellen(); sichern(); zeichnen(); };
       // Ein Stand ersetzt die ganze Sitzung. Stehen schon Stimmen, erst fragen.
       if(!etwasDa()){ uebernehmen(); return; }
       const kasten=el("div","hinweis");
@@ -815,8 +906,7 @@
         return;
       }
       try{ localStorage.removeItem(SCHLUESSEL); localStorage.removeItem(SCHLUESSEL_ALT); }catch(e){}
-      S.kopf={schule:"", datum:heuteISO(), wahlleitung:"", wahlhelfer:"", anwesendW:"", anwesendS:"", quorum:"erfüllt", teilkonferenz:""};
-      S.mitglieder=[]; S.faecher=[]; S.wahlgaenge={}; S.aktiv="vorstand"; S.listeName=""; S.nachversorgt=0;
+      Object.assign(S, leerstand());
       zeichnen();
     };
     const zr=el("div","fussleiste"); zr.append(lz, zurueck); k5.append(zr);
@@ -842,7 +932,7 @@
         || Object.values(S.wahlgaenge||{}).some(w => (w.kandidaten||[]).length>0)
         || ["schule","wahlleitung","wahlhelfer","anwesendW","anwesendS","teilkonferenz"]
              .some(x => String(S.kopf[x]||"").trim())
-        || S.faecher.length>0;
+        || faecherListe().length>0;
   }
 
   function wahlgangZeichnen(f){
@@ -851,7 +941,7 @@
     S.aktiv=seite.id;
 
     const kz=el("div","kopfzeile");
-    kz.append(el("div","eyebrow", seite.gruppe));
+    kz.append(el("div","eyebrow", seite.gruppe + (seite.fachblock ? "  ·  "+seite.fachblock : "")));
     f.append(kz);
     f.append(el("h2","titel", seite.titel));
     f.append(el("div","unterzeile",
@@ -867,6 +957,57 @@
   }
   function namensliste(txt){
     return String(txt||"").split(/[,;]/).map(x=>x.trim()).filter(Boolean);
+  }
+  // Der Vorrat sind die Namen, die in dieser Sitzung schon geleitet haben, dazu die
+  // von Hand aufgenommenen. Die Vertreterliste taugt dafuer nicht: leiten darf auch,
+  // wer der Versammlung nicht angehoert.
+  function leitungsVorrat(){
+    // Die Wahlhelfenden stehen mit im Vorrat: sie sind da und kandidieren im jeweiligen
+    // Wahlgang ohnehin nicht — SchulGWahlO § 4 Absatz 4.
+    const v=namensliste(S.kopf.wahlleitung);
+    for(const n of namensliste(S.kopf.wahlhelfer)) if(!v.includes(n)) v.push(n);
+    for(const id in S.wahlgaenge)
+      for(const n of namensliste(S.wahlgaenge[id].leitung)) if(!v.includes(n)) v.push(n);
+    for(const n of (S.leitungen||[])) if(!v.includes(n)) v.push(n);
+    return v;
+  }
+  // Beim Tippen schlaegt das Feld zusaetzlich die Vertreterliste vor — oft leitet
+  // doch jemand aus der Runde.
+  function leitungsVorschlaege(){
+    const v=leitungsVorrat();
+    for(const m of S.mitglieder) if(m.voll && !v.includes(m.voll)) v.push(m.voll);
+    return v;
+  }
+  // Ohne eigene Angabe leitet die erste Person aus dem Kopf. Stehen dort mehrere,
+  // sind die uebrigen nur Vorrat und werden im Wahlgang angeklickt.
+  function leitungAus(d){
+    return d.leitung ? namensliste(d.leitung) : namensliste(S.kopf.wahlleitung).slice(0,1);
+  }
+  function leitungVon(id){ return leitungAus(daten(id)); }
+  // Wahlgaenge, ueber die abgestimmt wurde — nur die zaehlen fuer den Kopf
+  function gefuehrteWahlgaenge(){
+    const raus=[];
+    for(const seite of wgListe()) for(const t of seite.teile)
+      if(daten(t.id).kandidaten.length) raus.push(t.id);
+    return raus;
+  }
+  // Im Kopf steht, wer die meisten Wahlgaenge geleitet hat
+  function hauptLeitung(){
+    const zaehler=new Map();
+    for(const id of gefuehrteWahlgaenge()){
+      const s=leitungVon(id).join(", ");
+      if(s) zaehler.set(s, (zaehler.get(s)||0)+1);
+    }
+    let beste="", n=0;
+    for(const [s,c] of zaehler) if(c>n){ beste=s; n=c; }
+    return beste || namensliste(S.kopf.wahlleitung).join(", ");
+  }
+  // Unterschrieben wird von allen, die mindestens einen Wahlgang geleitet haben
+  function alleLeitungen(){
+    const raus=[];
+    for(const id of gefuehrteWahlgaenge())
+      for(const n of leitungVon(id)) if(!raus.includes(n)) raus.push(n);
+    return raus.length ? raus : namensliste(S.kopf.wahlleitung);
   }
   function pruefen(teil, sitze, reihen, gezaehlt){
     const d=daten(teil.id), raus=[];
@@ -927,13 +1068,26 @@
     if(teil.sitze!=null && d.sitze!=null && d.sitze!=="" && Number(d.sitze)>teil.sitze)
       raus.push("Mehr als "+teil.sitze+" Sitze sind hier nicht vorgesehen.");
     // Die Wahlleitung darf im Wahlgang, den sie leitet, nicht kandidieren
-    const leitet=namensliste(d.leitung || S.kopf.wahlleitung).map(x=>x.toLowerCase());
+    const leitet=leitungAus(d).map(x=>x.toLowerCase());
     const beides=reihen.filter(k=> leitet.includes(String(k.name).toLowerCase())).map(k=>k.name);
     if(beides.length) raus.push("Leitet diesen Wahlgang und kandidiert darin: "+beides.join(", ")
       +". Für diesen Wahlgang eine andere Wahlleitung eintragen.");
     // Wer nur stellvertretend in der Klasse ist, kann nicht gewählt werden
     const nur=gew.filter(k=>k.nurStellv).map(k=>k.name);
     if(nur.length) raus.push("Nicht wählbar, weil nur stellvertretend in der Klasse: "+nur.join(", ")+".");
+    // Wer in zwei Fachkonferenzen desselben Blocks als beratendes Mitglied aufgestellt
+    // wird, wird gemeldet — beim Aufstellen, dann kann die Versammlung noch tauschen.
+    if(teil.id.indexOf("fk::")===0){
+      const fach=teil.id.slice(4), doppelt=[];
+      for(const nachbar of fachblockNachbarn(fach)){
+        for(const k of daten("fk::"+nachbar).kandidaten){
+          const auch=reihen.find(x=> x.name===k.name || (x.id && k.id && x.id===k.id));
+          if(auch) doppelt.push(auch.name+" ("+nachbar+")");
+        }
+      }
+      if(doppelt.length) raus.push("Auch in einer anderen Fachkonferenz von "+fachblockVon(fach)
+        +" aufgestellt: "+[...new Set(doppelt)].join(", ")+".");
+    }
     // Dasselbe Gremium: niemand ist zugleich Mitglied und Stellvertretung
     const seite=seiteVon(teil.id);
     if(seite && gew.length){
@@ -1130,13 +1284,47 @@
       i.value=d[key]||""; i.oninput=()=>{ d[key]=i.value.replace(/[^0-9]/g,""); sichern(); };
       l.append(i); fu.append(l);
     };
-    // Wer kandidiert, darf die Wahl nicht leiten — SchulGWahlO § 4 Absatz 1
-    const lh=el("label"); lh.append(el("span",null,"Wahlleitung, abweichend"));
-    const ih=document.createElement("input"); ih.className="breit"; ih.id="leitung_"+w.id;
-    ih.placeholder=S.kopf.wahlleitung||"—";
-    ih.value=d.leitung||""; ih.oninput=()=>{ d.leitung=ih.value; sichern(); };
-    ih.onblur=spaeterZeichnen;
-    lh.append(ih); fu.append(lh);
+    // Wer kandidiert, darf die Wahl nicht leiten — SchulGWahlO § 4 Absatz 1. Leiten darf
+    // auch, wer der Versammlung nicht angehoert, deshalb ist der Vorrat ein eigener:
+    // die Namen dieser Sitzung, neue kommen ueber das Feld dazu.
+    const lh=el("label","breitzeile"); lh.append(el("span",null,"Wahlleitung"));
+    const wl=el("div","wl");
+    const jetzt=leitungAus(d);
+    const setzen=liste=>{
+      // Wer weggeschaltet wird, bleibt im Vorrat — sonst faellt sein Knopf weg, sobald
+      // er in keinem Wahlgang mehr steht, und er ist neu zu tippen.
+      const ausKopf=namensliste(S.kopf.wahlleitung).concat(namensliste(S.kopf.wahlhelfer));
+      for(const n of jetzt)
+        if(n && !ausKopf.includes(n) && !(S.leitungen||[]).includes(n))
+          (S.leitungen=S.leitungen||[]).push(n);
+      d.leitung=[...new Set(liste.map(x=>x.trim()).filter(Boolean))].join(", ");
+      sichern(); zeichnen();
+    };
+    // Eine Wahl hat eine Leitung — SchulGWahlO § 4 Absatz 1. Ein Klick schaltet um,
+    // die vorige Person muss nicht abgewählt werden.
+    for(const n of leitungsVorrat()){
+      const an=jetzt.includes(n);
+      const k=el("button","wlk"+(an?" an":""), n);
+      k.title = an ? "Leitet diesen Wahlgang" : "Leitung auf diese Person umschalten";
+      k.setAttribute("aria-pressed", an?"true":"false");
+      k.onclick=()=> setzen([n]);
+      wl.append(k);
+    }
+    const iw=document.createElement("input");
+    iw.className="wlfeld"; iw.id="leitung_"+w.id; iw.autocomplete="off";
+    iw.placeholder="Name aufnehmen";
+    iw.setAttribute("list", "wlliste_"+w.id);
+    const liste=document.createElement("datalist"); liste.id="wlliste_"+w.id;
+    for(const n of leitungsVorschlaege()) liste.append(el("option", null, n));
+    const dazu=()=>{
+      const n=iw.value.trim(); if(!n) return;
+      if(!(S.leitungen||[]).includes(n)) (S.leitungen=S.leitungen||[]).push(n);
+      iw.value=""; setzen([n]);
+    };
+    iw.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); dazu(); } };
+    iw.onchange=dazu;
+    wl.append(iw, liste);
+    lh.append(wl); fu.append(lh);
     // Nein und Enthaltung stehen je Person in der Tabelle, sobald nicht mehr kandidieren
     // als Sitze zu vergeben sind; sonst gelten sie fuer den ganzen Wahlgang
     if(!jp){
@@ -1280,8 +1468,8 @@
   // Wer einen einzelnen Wahlgang geleitet hat, steht unter dessen Überschrift —
   // so wie die Wahlleitung im Kopf des Protokolls.
   function leitungAbweichend(d){
-    const wl=String(d.leitung||"").trim();
-    return (wl && wl!==String(S.kopf.wahlleitung||"").trim()) ? wl : "";
+    const wl=leitungAus(d).join(", ");
+    return (wl && wl!==hauptLeitung()) ? wl : "";
   }
   function pleitung(wl){
     const r=el("div","pzeile");
@@ -1344,7 +1532,7 @@
       r.append(el("b",null,lab), el("span",null,wert||"—")); d.append(r); };
     z("Schule", S.kopf.schule);
     z("Datum, Uhrzeit", S.kopf.datum);
-    z("Wahlleitung", S.kopf.wahlleitung);
+    z("Wahlleitung", hauptLeitung());
     if(String(S.kopf.wahlhelfer||"").trim()) z("Wahlhelfende", S.kopf.wahlhelfer);
     d.append(el("p","psatz",
       "Anwesend sind "+(S.kopf.anwesendW||"—")+" Wahlberechtigte mit insgesamt "
@@ -1401,7 +1589,7 @@
       prot.append(b);
     }
     // Alle Fachkonferenzen in vier Tabellen statt je Fach eine eigene Seite
-    const F=S.faecher.filter(f=> daten("fk::"+f).kandidaten.length
+    const F=faecherListe().filter(f=> daten("fk::"+f).kandidaten.length
                               || daten("fks::"+f).kandidaten.length);
     if(F.length){
       const SF={kopf:"Fach",k:"fach",klasse:"f"}, SN={kopf:"Name",k:"name"},
@@ -1472,8 +1660,7 @@
     b.append(el("p","psatz",
       "Die Wahlleitung bestätigt mit ihrer Unterschrift die Richtigkeit dieser Niederschrift."));
     const u=el("div","unters");
-    (S.kopf.wahlleitung||"").split(/[,;]/).map(x=>x.trim()).filter(Boolean)
-      .forEach(n=> u.append(el("div",null,n+" — Wahlleitung, Datum")));
+    alleLeitungen().forEach(n=> u.append(el("div",null,n+" — Wahlleitung, Datum")));
     if(!u.children.length) u.append(el("div",null,"Wahlleitung, Datum"));
     b.append(u);
     b.append(el("div","fuss", (S.kopf.schule||"")+"   ·   Schuljahr "+schuljahr()
