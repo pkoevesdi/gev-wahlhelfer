@@ -409,7 +409,8 @@
      "stimmen": "15",
      "nurStellv": false,
      "annahme": "ja",
-     "stimmen2": ""
+     "stimmen2": "",
+     "enth": "2"
     },
     {
      "name": "Quirin Haselnuss",
@@ -419,13 +420,14 @@
      "stimmen": "13",
      "nurStellv": false,
      "annahme": "ja",
-     "stimmen2": ""
+     "stimmen2": "",
+     "enth": "4"
     }
    ],
    "abgegeben": "",
    "sitze": null,
    "art": "offen",
-   "blockwahl": true,
+   "blockwahl": false,
    "enth": "0",
    "ung": "0",
    "leitung": "",
@@ -479,7 +481,8 @@
      "stimmen": "16",
      "nurStellv": false,
      "annahme": "ja",
-     "stimmen2": ""
+     "stimmen2": "",
+     "enth": "1"
     }
    ],
    "abgegeben": "",
@@ -549,13 +552,14 @@
      "stimmen": "16",
      "nurStellv": false,
      "annahme": "ja",
-     "stimmen2": ""
+     "stimmen2": "",
+     "enth": "1"
     }
    ],
    "abgegeben": "",
    "sitze": null,
    "art": "offen",
-   "blockwahl": true,
+   "blockwahl": false,
    "enth": "0",
    "ung": "0",
    "leitung": "",
@@ -669,13 +673,14 @@
      "stimmen": "16",
      "nurStellv": false,
      "annahme": "ja",
-     "stimmen2": ""
+     "stimmen2": "",
+     "enth": "1"
     }
    ],
    "abgegeben": "",
    "sitze": null,
    "art": "offen",
-   "blockwahl": true,
+   "blockwahl": false,
    "enth": "0",
    "ung": "0",
    "leitung": "",
