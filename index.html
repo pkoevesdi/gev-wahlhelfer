@@ -164,6 +164,10 @@
   .feld span{display:block; font-size:11.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); font-weight:600; margin-bottom:4px;}
   .feld input, .feld select{width:100%; border:1px solid var(--line); border-radius:8px; padding:8px 11px; background:var(--ground); font:inherit;}
   .datei{display:inline-flex; align-items:center; gap:8px;}
+  /* Die Knöpfe zum Laden und Zurücksetzen stehen untereinander und gleich breit */
+  .knopfspalte{flex-direction:column; align-items:stretch; gap:8px;}
+  .knopfspalte > *{width:100%;}
+  .knopfspalte .knopf{width:100%; text-align:center;}
   .datei input{display:none;}
   .zahl{font-family:var(--mono); font-variant-numeric:tabular-nums;}
   .liste-info{font-size:13px; color:var(--muted); margin-top:10px;}
@@ -414,15 +418,35 @@
   // Solange nicht gezaehlt ist, bleibt es leer und die Niederschrift zeigt einen Strich.
   const nullzahl=(k,v)=> String(v==null?"":v).trim()!=="" ? v
                        : (String(k.stimmen==null?"":k.stimmen).trim()!=="" ? "0" : "");
-  // Stehen nicht mehr Kandidaturen als Sitze zur Wahl, wird ueber jede Person einzeln
-  // mit Ja, Nein oder Enthaltung abgestimmt. Die Enthaltung zu einer einzelnen Person
-  // ist weder eine Enthaltung zum ganzen Wahlgang noch ein Nein und steckt deshalb in
-  // keiner Gesamtzahl — sie gehoert je Person in die Niederschrift.
-  function jePersonD(d, sitze){
-    const n=(d.kandidaten||[]).length;
-    return n>0 && (sitze===Infinity || n<=sitze);
+  // Wurde nach Nein und Enthaltung gar nicht gefragt, bleiben beide Spalten leer —
+  // dann gehoeren sie nicht in die Niederschrift, und „0" waere eine Behauptung.
+  function dreiGezaehlt(id){
+    return daten(id).kandidaten.some(k=>
+      String(k.nein==null?"":k.nein).trim()!=="" || String(k.enth==null?"":k.enth).trim()!=="");
   }
-  function jePerson(id){ return jePersonD(daten(id), sitzeFuer(id)); }
+  // Wie gezaehlt wird, folgt aus Wahlart, Abstimmungsweise und dem Verhaeltnis der
+  // Kandidaturen zu den Sitzen:
+  //   "block"   ein Satz Zahlen fuer den ganzen Wahlgang. Bei Blockwahl wird ueber alle
+  //             zusammen abgestimmt, verschiedene Zahlen kann es dabei nicht geben.
+  //   "person"  Ja, Nein und Enthaltung je Kandidatur. Die Enthaltung zu einer einzelnen
+  //             Person ist weder Nein noch Enthaltung zum Wahlgang — SchulGWahlO § 5
+  //             Absatz 2 Satz 3 verlangt die drei Angaben hinter jedem Namen.
+  //   "stimmen" eine Stimmenzahl je Kandidatur; Enthaltung und ungueltige gelten dem
+  //             ganzen Wahlgang, so sieht der Stimmzettel einer Auswahlwahl aus.
+  function erfassungD(d, sitze){
+    if(!(d.kandidaten||[]).length) return "stimmen";
+    const auswahl = sitze!==Infinity && d.kandidaten.length>sitze;
+    if(!auswahl) return d.blockwahl ? "block" : "person";
+    // Geheime Auswahlwahl: auf dem Zettel stehen Namen, Enthaltung und ungueltige
+    // gelten dem ganzen Wahlgang — SchulGWahlO § 5 Absatz 2.
+    if((d.art||"offen")==="geheim") return "stimmen";
+    // Offene Auswahlwahl: es wird Kandidatur fuer Kandidatur gefragt, nur nicht immer
+    // nach Nein und Enthaltung. Ob sie gezaehlt wurden, steht in den Zahlen selbst.
+    return "person";
+  }
+  function erfassungVon(id){ return erfassungD(daten(id), sitzeFuer(id)); }
+  // Ja, Nein und Enthaltung stehen bei beiden in der Tabelle — im Block ueberall gleich
+  const dreiZahlen = a => a==="person" || a==="block";
   // Frueher standen Nein und Enthaltung als Gesamtzahl am Wahlgang; wo ueber jede Person
   // einzeln abgestimmt wurde, galten sie fuer jede Person gleichermassen. Ein alter Stand
   // wird beim Laden darauf umgeschrieben.
@@ -434,7 +458,7 @@
     delete S.faecher;
     for(const id in S.wahlgaenge){
       const d=S.wahlgaenge[id];
-      if(!d || !jePersonD(d, sitzeFuer(id))) continue;
+      if(!d || !dreiZahlen(erfassungD(d, sitzeFuer(id)))) continue;
       const gn=String(d.nein||"").trim(), ge=String(d.enth||"").trim();
       if(!gn && !ge) continue;
       if(d.kandidaten.some(k=> String(k.nein||"").trim() || String(k.enth||"").trim())) continue;
@@ -773,7 +797,7 @@
     // Feldes, nicht beim Tippen — sonst blinken sie bei jeder Zwischenzahl auf. Die Karte
     // wird dabei nicht neu gezeichnet, sonst verloere das Feld den Eingabepunkt.
     const warn2=el("div");
-    for(const [key,lab] of [["anwesendW","Wahlberechtigte"],["anwesendS","Stimmen — Grundlage für „einstimmig“"]]){
+    for(const [key,lab] of [["anwesendW","Wahlberechtigte"],["anwesendS","Stimmberechtigungen — Grundlage für „einstimmig“"]]){
       const l=el("label","feld"); l.append(el("span",null,lab));
       const i=document.createElement("input"); i.id="feld_"+key; i.className="zahl"; i.inputMode="numeric"; i.value=S.kopf[key]||"";
       i.oninput=()=>{ S.kopf[key]=i.value; sichern(); };
@@ -784,7 +808,7 @@
       warn2.innerHTML="";
       const zW=Number(String(S.kopf.anwesendW||"").trim()), zS=Number(String(S.kopf.anwesendS||"").trim());
       if(zW>0 && zS>0 && zS<zW)
-        meldung(warn2,"Weniger Stimmen als Wahlberechtigte — jede anwesende Person hat mindestens eine Stimme.");
+        meldung(warn2,"Weniger Stimmberechtigungen als Wahlberechtigte — jede anwesende Person hat mindestens eine Stimme.");
       const ausListe=S.mitglieder.filter(m=>!m.frei).length;
       if(zW>0 && ausListe>0 && zW>ausListe)
         meldung(warn2,"Mehr Anwesende als Vertreter in der Liste ("+ausListe+").");
@@ -794,9 +818,9 @@
         a + Math.max(0, String(m.klasse||"").split(",").filter(x=>x.trim()).length - 1), 0);
       if(zW>0 && zS>zW && ausListe>0 && (zS-zW)>zusatz)
         meldung(warn2, zusatz
-          ? "Mehr Stimmen als möglich: die Liste kennt nur "
+          ? "Mehr Stimmberechtigungen als möglich: die Liste kennt nur "
             + (zusatz===1 ? "ein Zweitmandat." : zusatz+" Zweitmandate.")
-          : "Mehr Stimmen als Wahlberechtigte, aber in der Liste vertritt niemand zwei Klassen.");
+          : "Mehr Stimmberechtigungen als Wahlberechtigte, aber in der Liste vertritt niemand zwei Klassen.");
     }
     k2.append(warn2);
     anwesendPruefen();
@@ -896,21 +920,44 @@
       k5.append(kasten);
     };
     lz.append(iz, el("span","knopf","Stand laden"));
-    const zurueck=el("button","knopf","Alles zurücksetzen");
-    zurueck.onclick=()=>{
-      if(etwasDa() && zurueck.dataset.sicher!=="ja"){
-        zurueck.dataset.sicher="ja";
-        zurueck.textContent="Wirklich? Alles zurücksetzen";
-        zurueck.classList.add("warnknopf");
-        setTimeout(()=>{ zurueck.dataset.sicher=""; zurueck.textContent="Alles zurücksetzen";
-                         zurueck.classList.remove("warnknopf"); }, 5000);
-        return;
+    // Drei Rücksetzknöpfe, gleiche Mechanik: erster Klick fragt, zweiter führt aus.
+    // Das Fragen schaltet die anderen ab, damit nie zwei „Wirklich?" nebeneinander
+    // stehen, und es wird immer gefragt — auch wenn nichts mehr da ist, sonst sieht
+    // ein Klick aus wie nichts.
+    function ruecksetzknopf(titel, tun){
+      const b=el("button","knopf", scharferKnopf===titel ? "Wirklich? "+titel : titel);
+      if(scharferKnopf===titel) b.classList.add("warnknopf");
+      b.onclick=()=>{
+        if(scharferKnopf!==titel){
+          scharferKnopf=titel;
+          clearTimeout(scharfUhr);
+          scharfUhr=setTimeout(()=>{ scharferKnopf=null; zeichnen(); }, 5000);
+          zeichnen();
+          return;
+        }
+        clearTimeout(scharfUhr); scharferKnopf=null;
+        tun(); sichern(); zeichnen();
+      };
+      return b;
+    }
+    const stimmenWeg=(auchKandidaturen)=>{
+      for(const id in S.wahlgaenge){
+        const d=S.wahlgaenge[id];
+        d.kandidaten.forEach(k=>{ k.stimmen=""; k.nein=""; k.enth=""; k.stimmen2=""; k.annahme=""; });
+        d.nein=""; d.enth=""; d.ung=""; d.abgegeben=""; d.stichwahl=false; d.reihenfolge="";
+        d.block=""; d.blockNein=""; d.blockEnth="";
+        if(auchKandidaturen) d.kandidaten=[];
       }
-      try{ localStorage.removeItem(SCHLUESSEL); localStorage.removeItem(SCHLUESSEL_ALT); }catch(e){}
-      Object.assign(S, leerstand());
-      zeichnen();
     };
-    const zr=el("div","fussleiste"); zr.append(lz, zurueck); k5.append(zr);
+    const zr=el("div","fussleiste knopfspalte");
+    zr.append(lz,
+      ruecksetzknopf("Stimmen zurücksetzen", ()=> stimmenWeg(false)),
+      ruecksetzknopf("Stimmen und Kandidaturen zurücksetzen", ()=> stimmenWeg(true)),
+      ruecksetzknopf("Alles zurücksetzen", ()=>{
+        try{ localStorage.removeItem(SCHLUESSEL); localStorage.removeItem(SCHLUESSEL_ALT); }catch(e){}
+        Object.assign(S, leerstand());
+      }));
+    k5.append(zr);
     karten.append(k5);
 
     f.append(karten);
@@ -1014,7 +1061,7 @@
     const d=daten(teil.id), raus=[];
     const anzZ=Number(String(S.kopf.anwesendS||"").trim());
     const gew=gezaehlt ? gewaehlt(teil.id) : [];
-    const jp=jePersonD(d, sitze);
+    const art=erfassungD(d, sitze), jp=dreiZahlen(art);
     const summe=k=> jp ? zahl(k.stimmen)+zahl(k.nein)+zahl(k.enth) : zahl(k.stimmen);
 
     // Gleichstand: an der Sitzgrenze entscheidet er, wer gewaehlt ist, sonst nur die Reihenfolge
@@ -1030,7 +1077,19 @@
     // Mehr Stimmen als anwesende Stimmen
     if(anzZ>0){
       const zuviel=reihen.filter(k=> summe(k)>anzZ).map(k=>k.name);
-      if(zuviel.length) raus.push("Mehr Stimmen als anwesend sind ("+anzZ+"): "+zuviel.join(", ")+".");
+      if(zuviel.length) raus.push("Mehr Stimmen als Stimmberechtigungen ("+anzZ+"): "+zuviel.join(", ")+".");
+    }
+    // Bei offener Wahl muss die Rechnung mit den Stimmberechtigungen aufgehen. Gemeldet
+    // wird erst, wenn ueberall eine Ja-Zahl steht — sonst blinkt es beim Eintippen.
+    if(jp && anzZ>0 && (d.art||"offen")!=="geheim" && reihen.length && dreiGezaehlt(teil.id)
+       && reihen.every(k=> String(k.stimmen==null?"":k.stimmen).trim()!=="")){
+      const schief=reihen.filter(k=> summe(k)!==anzZ);
+      if(schief.length && art==="block")
+        raus.push("Ja, Nein und Enthaltung ergeben "+summe(schief[0])+" statt der "
+          +anzZ+" Stimmberechtigungen.");
+      else if(schief.length)
+        raus.push("Ja, Nein und Enthaltung ergeben nicht die "+anzZ+" Stimmberechtigungen: "
+          +schief.map(k=> k.name+" ("+summe(k)+")").join(", ")+".");
     }
     // Ueber jede Person einzeln abgestimmt: gewaehlt ist nur, wer mehr Ja als Nein hat
     if(jp && gezaehlt){
@@ -1115,14 +1174,18 @@
 
     const reihen=sortiert(w.id);
     const gezaehlt = reihen.some(k=>k.stimmen!=="" && k.stimmen!=null);
-    const stich=!!d.stichwahl, ordnen=gleichstand(w.id), jp=jePersonD(d, sitze);
-    const spalten="34px minmax(0,1fr) "+(jp?"92px 92px 92px":"128px")
+    const stich=!!d.stichwahl, ordnen=gleichstand(w.id);
+    const art=erfassungD(d, sitze), jp=art==="person";
+    // Im Block steht das Ergebnis einmal unter der Tabelle, nicht in jeder Zeile
+    const blockwahl = art==="block";
+    const spalten="34px minmax(0,1fr) "+(jp?"92px 92px 92px":(blockwahl?"":"128px"))
                  +(stich?" 128px":"")+(ordnen?" 110px":" 70px");
     const gleich=(a,b)=> a&&b && (Number(a.stimmen)||0)===(Number(b.stimmen)||0)
                               && (Number(a.stimmen2)||0)===(Number(b.stimmen2)||0);
     const tab=el("div","tabelle");
     const kopf=el("div","treihe kopf"+(jp?" jeperson":"")); kopf.style.gridTemplateColumns=spalten;
-    kopf.append(el("span",null,"#"), el("span",null,"Name"), el("span",null, jp?"Ja":"Stimmen"));
+    kopf.append(el("span",null,"#"), el("span",null,"Name"));
+    if(!blockwahl) kopf.append(el("span",null, jp?"Ja":"Stimmen"));
     if(jp) kopf.append(el("span",null,"Nein"), el("span",null,"Enthaltung"));
     if(stich) kopf.append(el("span",null,"Stichwahl"));
     kopf.append(el("span",null,""));
@@ -1165,7 +1228,7 @@
         inp.onblur=spaeterZeichnen;
         r.append(inp);
       };
-      feld("stimmen","st", jp?"Ja-Stimmen":"Stimmen");
+      if(!blockwahl) feld("stimmen","st", jp?"Ja-Stimmen":"Stimmen");
       if(jp){ feld("nein","ne","Nein-Stimmen"); feld("enth","en","Enthaltungen"); }
       if(stich) feld("stimmen2","st2","Stimmen der Stichwahl");
       const knoepfe=el("div","zeilknoepfe");
@@ -1189,7 +1252,7 @@
       // Einzeln abgestimmt, aber einstimmig: nur diese Kandidatur bekommt alle Stimmen
       const anzZ=String(S.kopf.anwesendS||"").trim();
       const e1=el("button","zk","✓");
-      e1.disabled=!anzZ;
+      e1.disabled=!anzZ || blockwahl;
       e1.title=anzZ ? "Einstimmig gewählt: "+anzZ+" Stimmen" : "In der Einrichtung fehlt die Stimmenzahl der Anwesenden";
       e1.setAttribute("aria-label","Einstimmig gewählt: "+kand.name);
       e1.onclick=()=>{ kand.stimmen=anzZ; if(jp){ kand.nein=""; kand.enth=""; } sichern(); zeichnen(); };
@@ -1215,8 +1278,31 @@
     const box=el("div","treffer"); box.hidden=true; auf.append(box);
     let aktiv=-1;
     function schliessen(){ box.hidden=true; box.innerHTML=""; aktiv=-1; }
+    // Die Kandidaturen stehen fest, bevor abgestimmt wird — SchulGWahlO § 4 Absatz 3.
+    // Kommt danach eine dazu, ist der Wahlgang zu wiederholen und die gezaehlten
+    // Stimmen gelten nicht mehr. Deshalb erst fragen, dann loeschen.
     function aufnehmen(p){
       const name = p ? p.voll : suche.value.trim();
+      if(!name) return;
+      const gezaehltSchon = d.kandidaten.some(k=>
+        [k.stimmen, k.nein, k.enth, k.stimmen2].some(v=> String(v==null?"":v).trim()!==""));
+      if(!gezaehltSchon) { aufnehmenJetzt(p, name); return; }
+      schliessen();
+      const kasten=el("div","hinweis");
+      kasten.append(el("div",null, "In diesem Wahlgang stehen schon Stimmen. Eine weitere "
+        + "Kandidatur macht ihn ungültig — er ist dann zu wiederholen."));
+      const knoepfe=el("div","fussleiste");
+      const ja=el("button","knopf warnknopf","Stimmen löschen und "+name+" aufnehmen");
+      ja.onclick=()=>{
+        d.kandidaten.forEach(k=>{ k.stimmen=""; k.nein=""; k.enth=""; k.stimmen2=""; k.annahme=""; });
+        aufnehmenJetzt(p, name);
+      };
+      const nein=el("button","knopf","Abbrechen");
+      nein.onclick=()=>{ kasten.remove(); };
+      knoepfe.append(ja, nein); kasten.append(knoepfe);
+      auf.append(kasten);
+    }
+    function aufnehmenJetzt(p, name){
       if(!p && name && !S.mitglieder.some(m=>m.voll===name)){
         // Frei eingetippt: für diese Sitzung in den Bestand, damit die Suche ihn im
         // nächsten Wahlgang findet und die Schreibweise dieselbe bleibt. In die
@@ -1238,6 +1324,16 @@
       // Stände ohne Kennung fallen auf den Namen zurück
       const drinIds=new Set(d.kandidaten.filter(k=>k.id).map(k=>k.id));
       const drinNamen=new Set(d.kandidaten.filter(k=>!k.id).map(k=>k.name));
+      // Wer im anderen Wahlgang desselben Gremiums gewaehlt ist, kann hier nicht mehr
+      // antreten — niemand ist zugleich Mitglied und Stellvertretung. Aufgestellte
+      // bleiben in der Liste, die koennen es ja noch werden.
+      const seite=seiteVon(w.id);
+      for(const t of (seite ? seite.teile : [])){
+        if(t.id===w.id) continue;
+        for(const k of gewaehlt(t.id)){
+          if(k.id) drinIds.add(k.id); else drinNamen.add(k.name);
+        }
+      }
       const tr=S.mitglieder.filter(m=> !drinIds.has(m.id) && !drinNamen.has(m.voll)
         && (m.voll.toLowerCase().includes(q) || m.klasse.toLowerCase().includes(q))).slice(0,10);
       tr.forEach(p=>{
@@ -1279,6 +1375,7 @@
     bw.title="Im Block heißt: über alle Kandidaturen dieses Wahlgangs wurde in einem Zug abgestimmt";
     bw.onclick=()=>{ d.blockwahl=!d.blockwahl; sichern(); zeichnen(); };
     lb.append(bw); fu.append(lb);
+
     const zahlfeld=(lab,key)=>{
       const l=el("label"); l.append(el("span",null,lab));
       const i=document.createElement("input"); i.className="zahl"; i.inputMode="numeric"; i.id=key+"_"+w.id;
@@ -1328,7 +1425,9 @@
     lh.append(wl); fu.append(lh);
     // Nein und Enthaltung stehen je Person in der Tabelle, sobald nicht mehr kandidieren
     // als Sitze zu vergeben sind; sonst gelten sie fuer den ganzen Wahlgang
-    if(!jp){
+    // Nur wo eine einzelne Stimmenzahl je Kandidatur steht, gelten Nein und Enthaltung
+    // dem ganzen Wahlgang; sonst stehen sie in der Tabelle oder in der Ergebniszeile.
+    if(art==="stimmen"){
       if(d.nein) zahlfeld("Nein","nein");
       zahlfeld("Enthaltungen","enth");
     }
@@ -1359,10 +1458,34 @@
       i2.onblur=spaeterZeichnen;
       l2.append(i2); fu.append(l2);
     }
-    // Traegt bei allen dasselbe ein — im Block wie einzeln. Wurde im Block abgestimmt,
-    // gelten dieselben Zahlen fuer jede Person; dann gehoeren Nein und Enthaltung dazu.
-    // Vorgeschlagen ist die volle Stimmenzahl, also Einstimmigkeit.
     const anz=String(S.kopf.anwesendS||"").trim();
+    if(blockwahl){
+      // Im Block wird einmal ueber alle zusammen abgestimmt: ein Satz Zahlen, der auf
+      // jede Kandidatur durchschlaegt. Die Niederschrift nennt sie trotzdem bei jedem
+      // Namen — SchulGWahlO § 6 Absatz 3 Nummer 5.
+      const lb=el("label"); lb.append(el("span",null,"Ergebnis"));
+      const ergFeld=(key, lab, vorgabe)=>{
+        lb.append(el("span",null,lab));
+        const i=document.createElement("input");
+        i.className="zahl"; i.inputMode="numeric"; i.id=key+"_"+w.id;
+        const erste=d.kandidaten[0];
+        i.value = erste && erste[key]!=null ? erste[key] : "";
+        i.placeholder = vorgabe || "0";
+        i.oninput=()=>{
+          const v=i.value.replace(/[^0-9]/g,""); i.value=v;
+          d.kandidaten.forEach(k=> k[key]=v);
+          sichern();
+        };
+        i.onblur=spaeterZeichnen;
+        lb.append(i);
+      };
+      ergFeld("stimmen","Ja", anz || "—");
+      ergFeld("nein","Nein","");
+      ergFeld("enth","Enthaltung","");
+      fu.append(lb);
+    } else {
+    // Traegt bei allen dieselbe Zahl ein. Vorgeschlagen ist die volle Stimmenzahl,
+    // also Einstimmigkeit.
     const l3=el("label"); l3.append(el("span",null,"Alle auf"));
     const felder={};
     const alleFeld=(key, lab, vorgabe)=>{
@@ -1391,6 +1514,7 @@
     };
     l3.append(be);
     fu.append(l3);
+    }
     // Bemerkung: alles, wofür es kein Feld gibt — Losentscheid, Wiederholung, Zwischenfall
     const lm=el("label","breitzeile"); lm.append(el("span",null,"Bemerkung"));
     const im=document.createElement("input"); im.className="breiter"; im.id="bem_"+w.id;
@@ -1450,10 +1574,9 @@
     const teile=[];
     if(sitze!=null && sitze!==Infinity) teile.push("Zu wählen: "+sitze);
     teile.push("Art der Wahl: "+art+(d.blockwahl?", im Block":""));
-    // Nein und Enthaltung stehen je Person in der Tabelle, wenn nicht mehr kandidieren
-    // als Sitze zu vergeben sind — zu einzelnen Personen darf man sich enthalten
-    if(jePersonD(d, sitze)) teile.push("Ja, Nein und Enthaltung je Person");
-    else{
+    // Wurde ueber jede Person einzeln abgestimmt, stehen Nein und Enthaltung in der
+    // Tabelle; sonst gelten sie fuer den ganzen Wahlgang und gehoeren hierher.
+    if(!dreiZahlen(erfassungD(d, sitze))){
       if(d.nein) teile.push("Nein: "+d.nein);
       teile.push("Enthaltungen: "+(d.enth||"0"));
     }
@@ -1487,7 +1610,7 @@
   // der Sitz faellt an die naechste Kandidatur.
   // Wird ueber jede Person einzeln abgestimmt, ist nur gewaehlt, wer mehr Ja als Nein hat.
   function gewaehlt(id){
-    const n=sitzeFuer(id), jp=jePerson(id);
+    const n=sitzeFuer(id), jp=dreiZahlen(erfassungVon(id));
     const a=sortiert(id).filter(k=>(Number(k.stimmen)||0)>0 && k.annahme!=="nein"
                                && !(jp && zahl(k.nein)>=zahl(k.stimmen)));
     return n===Infinity ? a : a.slice(0,n);
@@ -1502,7 +1625,7 @@
     const wl=leitungAbweichend(d);
     if(wl) ab.append(pleitung(wl));
     const hatStich=reihen.some(k=> String(k.stimmen2||"").trim()!=="");
-    const jp=jePerson(teil.id);
+    const jp=dreiZahlen(erfassungVon(teil.id)) && dreiGezaehlt(teil.id);
     const kspalten=[{kopf:"Name",k:"name"},{kopf:jp?"Ja":"Stimmen",k:"stimmen",klasse:"z"}];
     if(jp) kspalten.push({kopf:"Nein",k:"nein",klasse:"z"},{kopf:"Enthaltung",k:"enth",klasse:"z"});
     if(hatStich) kspalten.push({kopf:"Stichwahl",k:"stimmen2",klasse:"z"});
@@ -1602,7 +1725,7 @@
       const sammeln=(praefix, erg)=>{
         const a=[];
         F.forEach(f=>{
-          const jpf=jePerson(praefix+f);
+          const jpf=dreiZahlen(erfassungVon(praefix+f)) && dreiGezaehlt(praefix+f);
           (erg?gewaehlt(praefix+f):sortiert(praefix+f)).forEach((k,i)=>
             a.push({fach:f, rang:i+1, name:k.name, stimmen:k.stimmen, stimmen2:k.stimmen2, mail:k.mail,
                     nein: jpf?nullzahl(k,k.nein):"", enth: jpf?nullzahl(k,k.enth):""}));
@@ -1617,7 +1740,8 @@
       // gemeinsame Tabelle die Spalten Nein und Enthaltung. „Ja" steht ueber der
       // ersten Spalte nur, wenn das fuer alle Faecher gilt.
       const kspaltenF=pre=>{
-        const alle=F.every(f=> jePerson(pre+f)), eins=F.some(f=> jePerson(pre+f));
+        const dg=f=> dreiZahlen(erfassungVon(pre+f)) && dreiGezaehlt(pre+f);
+        const alle=F.every(dg), eins=F.some(dg);
         const s=[SF, SN, alle?SJ:SZ];
         if(eins) s.push(SNe, SEn);
         if(stichDa(pre)) s.push(SS);
@@ -1674,6 +1798,9 @@
     f.append(prot);
   }
 
+  // Welcher Ruecksetzknopf gerade gefragt hat. Am Namen statt am Element, sonst geht
+  // die Frage beim Neuzeichnen verloren und der naechste Klick fragt wieder.
+  let scharferKnopf=null, scharfUhr=null;
   let toastTimer=null;
   function toast(txt){
     document.querySelectorAll(".toast").forEach(t=>t.remove());
